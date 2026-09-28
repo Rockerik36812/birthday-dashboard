@@ -15,6 +15,7 @@ function isAuthed(req: NextRequest): boolean {
 
 export function middleware(req: NextRequest) {
   const isLoggedIn = isAuthed(req)
+  const isRoot = req.nextUrl.pathname === '/'
   const isOnLogin = req.nextUrl.pathname.startsWith('/login')
   const isOnRegister = req.nextUrl.pathname.startsWith('/register')
   const isOnApi = req.nextUrl.pathname.startsWith('/api/auth/signin') || 
@@ -23,6 +24,9 @@ export function middleware(req: NextRequest) {
                   req.nextUrl.pathname.startsWith('/api/cumpleanos') ||
                   req.nextUrl.pathname.startsWith('/api/sucursales') ||
                   req.nextUrl.pathname.startsWith('/api/admin/')
+
+  // Raíz pasa sin redirección — lo maneja page.tsx según estado del registro
+  if (isRoot) return NextResponse.next()
 
   // Redirigir autenticados fuera del login/registro
   if (isLoggedIn && (isOnLogin || isOnRegister)) {
