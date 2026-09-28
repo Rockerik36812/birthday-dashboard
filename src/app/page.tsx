@@ -1,24 +1,33 @@
-import { redirect } from 'next/navigation'
+"use client"
 
-async function getRegistrationStatus() {
-  const baseUrl = process.env.NEXTAUTH_URL || 'https://cumple.erikservicios.click'
-  try {
-    const res = await fetch(`${baseUrl}/api/registration-status`, { 
-      cache: 'no-store'
-    })
-    return await res.json()
-  } catch {
-    // Si falla la llamada, permitimos registro por defecto
-    return { registrationClosed: false, totalUsers: 0 }
-  }
-}
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 
-export default async function Home() {
-  const status = await getRegistrationStatus()
+export default function Home() {
+  const router = useRouter()
   
-  if (!status.registrationClosed) {
-    redirect('/register')
-  } else {
-    redirect('/login')
-  }
+  useEffect(() => {
+    // Check registration status client-side
+    fetch('/api/registration-status')
+      .then(res => res.json())
+      .then(data => {
+        if (!data.registrationClosed) {
+          router.replace('/register')
+        } else {
+          router.replace('/login')
+        }
+      })
+      .catch(() => {
+        // Default: go to register if something fails
+        router.replace('/register')
+      })
+  }, [router])
+  
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="text-center">
+        <p className="text-gray-500 text-lg">Cargando...</p>
+      </div>
+    </div>
+  )
 }
