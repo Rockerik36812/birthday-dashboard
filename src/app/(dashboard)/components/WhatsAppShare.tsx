@@ -36,9 +36,9 @@ export function WhatsAppShare({ cumple, cumpleList, mode, month, onClose }: What
     ? (cumple ? generateWhatsAppMessage(cumple.nombre, cumple.mensaje, getAgeInYear(cumple.fecha, year)) : '')
     : generateWhatsAppGroupMessage(items.map(c => ({ nombre: c.nombre, mensaje: c.mensaje, edad: getAgeInYear(c.fecha, year) })), refMonth)
 
-  const generateCardImage = useCallback(async () => {
+  const generateCardImage = useCallback(async (): Promise<Blob | null> => {
     const el = captureRef.current || cardRef.current
-    if (!el) return
+    if (!el) return null
 
     setIsGenerating(true)
     try {
@@ -51,34 +51,36 @@ export function WhatsAppShare({ cumple, cumpleList, mode, month, onClose }: What
         height: el.scrollHeight,
       })
 
-      canvas.toBlob((blob) => {
-        if (blob) {
-          setImageBlob(blob)
-        }
-        setIsGenerating(false)
-      }, 'image/png', 0.95)
+      const blob = await new Promise<Blob | null>((resolve) => {
+        canvas.toBlob((b) => resolve(b), 'image/png', 0.95)
+      })
+
+      if (blob) {
+        setImageBlob(blob)
+      }
+      setIsGenerating(false)
+      return blob
     } catch (error) {
       console.error('Error generando imagen:', error)
       setIsGenerating(false)
+      return null
     }
   }, [])
 
   const handleShare = async () => {
     setIsSharing(true)
     try {
-      if (!imageBlob) {
-        await generateCardImage()
-        // Esperar un poco para que se genere
-        await new Promise(r => setTimeout(r, 500))
+      let blob = imageBlob
+      if (!blob) {
+        blob = await generateCardImage()
       }
 
-      if (!imageBlob) {
+      if (!blob) {
         alert('No se pudo generar la imagen. Intenta de nuevo.')
         setIsSharing(false)
         return
       }
 
-      const blob = imageBlob
       const filename = `cumple-${mode === 'individual' ? (cumple?.nombre || 'cumple') : 'grupo'}-${format(new Date(), 'yyyy-MM-dd')}.png`
       const file = new File([blob], filename, { type: 'image/png' })
       const canNativeShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function'
@@ -126,13 +128,13 @@ export function WhatsAppShare({ cumple, cumpleList, mode, month, onClose }: What
   }
 
   const handleDownload = async () => {
-    if (!imageBlob) {
-      await generateCardImage()
-      await new Promise(r => setTimeout(r, 500))
+    let blob = imageBlob
+    if (!blob) {
+      blob = await generateCardImage()
     }
 
-    if (imageBlob) {
-      const url = URL.createObjectURL(imageBlob)
+    if (blob) {
+      const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
       a.download = `cumple-${mode === 'individual' ? (cumple?.nombre || 'cumple') : 'grupo'}-${format(new Date(), 'yyyy-MM-dd')}.png`
@@ -262,7 +264,7 @@ export function WhatsAppShare({ cumple, cumpleList, mode, month, onClose }: What
             {items.length} cumpleañeros este mes
           </h2>
 
-          <div className="space-y-3 mb-6 max-h-64 overflow-y-auto text-left">
+          <div className="space-y-3 mb-6 text-left">
             {items.map((c, i) => (
               <div
                 key={c.id}
@@ -273,7 +275,7 @@ export function WhatsAppShare({ cumple, cumpleList, mode, month, onClose }: What
                   <span className="font-bold text-sm" style={{ color: c.sucursal?.color || firstColor }}>{i + 1}</span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-neutral-900 truncate">{c.nombre}</p>
+                  <p className="font-semibold text-neutral-900 leading-snug break-words">{c.nombre}</p>
                   <p className="text-xs text-neutral-500 flex items-center gap-1">
                     <MapPin className="w-3 h-3" />
                     {c.sucursal?.nombre}
