@@ -24,7 +24,9 @@ export function WhatsAppShare({ cumple, cumpleList, mode, month, onClose }: What
   const [isGenerating, setIsGenerating] = useState(false)
   const [isSharing, setIsSharing] = useState(false)
   const [shareSuccess, setShareSuccess] = useState(false)
+  const [shareMethod, setShareMethod] = useState<'whatsapp' | 'descarga' | null>(null)
   const cardRef = useRef<HTMLDivElement>(null)
+  const captureRef = useRef<HTMLDivElement>(null)
   // Mes mostrado (para modo grupal)
   const refMonth = month ?? new Date()
 
@@ -35,17 +37,18 @@ export function WhatsAppShare({ cumple, cumpleList, mode, month, onClose }: What
     : generateWhatsAppGroupMessage(items.map(c => ({ nombre: c.nombre, mensaje: c.mensaje, edad: getAgeInYear(c.fecha, year) })), refMonth)
 
   const generateCardImage = useCallback(async () => {
-    if (!cardRef.current) return
+    const el = captureRef.current || cardRef.current
+    if (!el) return
 
     setIsGenerating(true)
     try {
-      const canvas = await html2canvas(cardRef.current, {
+      const canvas = await html2canvas(el, {
         scale: 2,
         useCORS: true,
         logging: false,
-        backgroundColor: null,
-        width: cardRef.current.scrollWidth,
-        height: cardRef.current.scrollHeight,
+        backgroundColor: '#ffffff',
+        width: el.scrollWidth,
+        height: el.scrollHeight,
       })
 
       canvas.toBlob((blob) => {
@@ -69,19 +72,57 @@ export function WhatsAppShare({ cumple, cumpleList, mode, month, onClose }: What
         await new Promise(r => setTimeout(r, 500))
       }
 
-      const text = encodeURIComponent(message)
-      const waUrl = `https://wa.me/?text=${text}`
+      if (!imageBlob) {
+        alert('No se pudo generar la imagen. Intenta de nuevo.')
+        setIsSharing(false)
+        return
+      }
 
-      // Abrir WhatsApp
-      window.open(waUrl, '_blank')
+      const blob = imageBlob
+      const filename = `cumple-${mode === 'individual' ? (cumple?.nombre || 'cumple') : 'grupo'}-${format(new Date(), 'yyyy-MM-dd')}.png`
+      const file = new File([blob], filename, { type: 'image/png' })
+      const canNativeShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function'
 
-      setShareSuccess(true)
-      setTimeout(() => setShareSuccess(false), 3000)
+      if (canNativeShare) {
+        // Hoja de compartir nativa del sistema (Android incluye WhatsApp) con la IMAGEN adjunta
+        try {
+          await navigator.share({ files: [file], text: message })
+          setShareSuccess(true)
+          setShareMethod('whatsapp')
+          setTimeout(() => setShareSuccess(false), 4000)
+        } catch (shareErr) {
+          // El usuario canceló u no soporta archivos → respaldo
+          fallbackDownload(blob, filename)
+        }
+      } else {
+        // Sin API nativa: descargar la imagen y copiar el texto
+        fallbackDownload(blob, filename)
+      }
     } catch (error) {
       console.error('Error compartiendo:', error)
+      alert('Error al compartir. Intenta de nuevo.')
     } finally {
       setIsSharing(false)
     }
+  }
+
+  const fallbackDownload = (blob: Blob, filename: string) => {
+    // Descargar la imagen lista para adjuntar en WhatsApp
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+    // Copiar el texto para pegarlo junto a la imagen
+    try {
+      navigator.clipboard?.writeText(message)
+    } catch (_) {}
+    setShareMethod('descarga')
+    setShareSuccess(true)
+    setTimeout(() => setShareSuccess(false), 5000)
   }
 
   const handleDownload = async () => {
@@ -275,7 +316,15 @@ export function WhatsAppShare({ cumple, cumpleList, mode, month, onClose }: What
 
         {/* Vista previa */}
         <div className="p-4 flex-1 overflow-auto flex items-center justify-center bg-neutral-50">
-          {renderCard()}
+          {items.length > 0 && (
+            <div
+              ref={captureRef}
+              className="inline-block p-5 rounded-2xl shadow-sm bg-white"
+              style={{ backgroundColor: '#ffffff' }}
+            >
+              {renderCard()}
+            </div>
+          )}
         </div>
 
         {/* Acciones */}
@@ -296,15 +345,21 @@ export function WhatsAppShare({ cumple, cumpleList, mode, month, onClose }: What
             {isGenerating && <Loader2 className="w-4 h-4 animate-spin" />}
             {isSharing && <Loader2 className="w-4 h-4 animate-spin" />}
             {!isGenerating && !isSharing && <Smartphone className="w-4 h-4" />}
-            <span>{isGenerating ? 'Generando...' : isSharing ? 'Abriendo...' : shareSuccess ? '¡Enviado!' : 'Enviar por WhatsApp'}</span>
+            <span>{isGenerating ? 'Generando...' : isSharing ? 'Compartiendo...' : shareSuccess ? shareMethod === 'descarga' ? '¡Listo!' : '¡Enviado!' : 'Compartir Imagen'}</span>
             {shareSuccess && <Check className="w-4 h-4 text-green-500 animate-scale-in" />}
           </button>
         </div>
 
         <p className="px-4 pb-4 text-center text-xs text-neutral-500">
-          {mode === 'individual'
-            ? 'La imagen se abrirá en WhatsApp para que elijas el contacto'
-            : 'Se abrirá WhatsApp con el mensaje grupal listo para enviar'}
+          {isGenerating || isSharing
+            ? 'Generando la imagen...'
+            : shareSuccess
+              ? shareMethod === 'descarga'
+                ? 'Imagen descargada (y texto copiado). Adjúntala en el chat de WhatsApp.'
+                : 'Imagen lista. Elige WhatsApp en la hoja de compartir para enviarla.'
+              : mode === 'individual'
+                ? 'La tarjeta se comparte como imagen (con fondo blanco) para enviarla por WhatsApp'
+                : 'Se comparte la tarjeta grupal como imagen para enviarla por WhatsApp'}
         </p>
       </div>
     </div>
