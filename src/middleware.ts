@@ -21,6 +21,8 @@ export function middleware(req: NextRequest) {
   const isOnApi = req.nextUrl.pathname.startsWith('/api/auth/signin') || 
                   req.nextUrl.pathname.startsWith('/api/register') ||
                   req.nextUrl.pathname.startsWith('/api/registration-status') ||
+                  req.nextUrl.pathname.startsWith('/api/me') ||
+                  req.nextUrl.pathname.startsWith('/api/logout') ||
                   req.nextUrl.pathname.startsWith('/api/cumpleanos') ||
                   req.nextUrl.pathname.startsWith('/api/sucursales') ||
                   req.nextUrl.pathname.startsWith('/api/admin/')

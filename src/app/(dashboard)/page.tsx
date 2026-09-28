@@ -364,9 +364,9 @@ function Dashboard() {
                   <p className="text-xs text-neutral-500 capitalize">{(session?.user as any)?.role || 'admin'}</p>
                 </div>
                 <button
-                  onClick={() => {
-                    // Logout: borrar cookie auth-token y recargar a /login
-                    document.cookie = 'auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+                  onClick={async () => {
+                    // Logout: borrar cookie httpOnly vía endpoint server-side
+                    await fetch('/api/logout', { method: 'POST', credentials: 'include' })
                     window.location.href = '/login'
                   }}
                   className="p-2 rounded-xl bg-neutral-100 hover:bg-neutral-200 transition-colors text-neutral-600"
