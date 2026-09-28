@@ -19,8 +19,10 @@ export function middleware(req: NextRequest) {
   const isOnRegister = req.nextUrl.pathname.startsWith('/register')
   const isOnApi = req.nextUrl.pathname.startsWith('/api/auth/signin') || 
                   req.nextUrl.pathname.startsWith('/api/register') ||
+                  req.nextUrl.pathname.startsWith('/api/registration-status') ||
                   req.nextUrl.pathname.startsWith('/api/cumpleanos') ||
-                  req.nextUrl.pathname.startsWith('/api/sucursales')
+                  req.nextUrl.pathname.startsWith('/api/sucursales') ||
+                  req.nextUrl.pathname.startsWith('/api/admin/')
 
   // Redirigir autenticados fuera del login/registro
   if (isLoggedIn && (isOnLogin || isOnRegister)) {
