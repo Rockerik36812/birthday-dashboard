@@ -56,67 +56,112 @@ export function Calendar({
     const dayCumpleanos = getCumpleanosForDay(date)
     const today = isToday(date)
     const isSelected = false // Podríamos agregar selección de día
+    const hasBirthdays = dayCumpleanos.length > 0
+    // Máximo de puntos a mostrar en móvil
+    const dotLimit = 3
 
     return (
       <div
         key={date.toISOString()}
+        onClick={() => dayCumpleanos.length > 0 && onEditClick(dayCumpleanos[0])}
         className={cn(
-          'relative min-h-[72px] sm:min-h-[110px] p-1 sm:p-2 rounded-lg sm:rounded-xl border transition-all duration-200',
+          'relative flex flex-col items-center sm:items-stretch justify-between cursor-pointer',
+          'rounded-lg sm:rounded-xl border transition-all duration-200 select-none',
+          // Móvil: celda cuadrada compacta; escritorio: más alta y espaciosa
+          'aspect-square sm:aspect-auto p-0.5 sm:p-2 sm:min-h-[104px]',
+          // Tema
           today
-            ? 'bg-gradient-to-br from-primary-500 to-secondary-500 border-transparent text-white shadow-lg shadow-primary-200/50'
-            : 'border-neutral-200/80 bg-white hover:border-primary-300 hover:shadow-md hover:-translate-y-px',
-          !isCurrentMonth && 'border-transparent bg-neutral-50/60 text-neutral-400 opacity-70'
+            ? 'bg-gradient-to-br from-primary-500 to-secondary-500 border-transparent text-white shadow-lg shadow-primary-200/60'
+            : hasBirthdays
+              ? 'bg-primary-50/50 border-primary-200/70 hover:border-primary-300 hover:shadow-md'
+              : 'border-neutral-200/70 bg-white hover:border-primary-300 hover:bg-primary-50/30',
+          !isCurrentMonth && 'border-transparent bg-neutral-50/60 text-neutral-400 opacity-60'
         )}
       >
-        <div className={cn('flex justify-between items-start mb-1', today ? 'text-white' : '')}>
+        {/* Número del día */}
+        <div className={cn(
+          'flex items-center justify-between w-full',
+          today ? 'text-white' : ''
+        )}>
           <span className={cn(
             'font-medium leading-none',
-            today ? 'text-white text-xs sm:text-sm font-bold bg-white/25 rounded-lg px-1.5 py-1' : 'text-neutral-700 text-xs sm:text-sm'
+            today
+              ? 'text-white text-[11px] sm:text-sm font-bold bg-white/30 rounded-md px-1 py-0.5'
+              : 'text-neutral-700 text-[11px] sm:text-sm'
           )}>
             {format(date, 'd', { locale: es })}
           </span>
-          {today && <span className="text-[8px] sm:text-[10px] badge-success">🎂 Hoy</span>}
+          {today && <span className="text-[7px] sm:text-[10px] badge-success px-1">🎂 Hoy</span>}
         </div>
 
-        {dayCumpleanos.length > 0 && (
-          <div className="space-y-1 sm:space-y-1.5 max-h-[44px] sm:max-h-[76px] overflow-y-auto pr-0.5">
-            {dayCumpleanos.slice(0, 3).map(cumple => {
-              const color = cumple.sucursal?.color || getSucursalColor(0)
-              return (
-                <div
-                  key={cumple.id}
-                  onClick={(e) => { e.stopPropagation(); onEditClick(cumple); }}
-                  className={cn(
-                    'cursor-pointer flex items-center gap-1 rounded-md sm:rounded-lg px-1 sm:px-1.5 py-1 transition-all duration-150',
-                    today ? 'bg-white/95 shadow-sm hover:scale-[1.03]' : 'bg-neutral-50 hover:scale-[1.02] hover:shadow-sm'
-                  )}
-                  style={today ? undefined : { backgroundColor: hexToRgba(color, 0.12) }}
-                >
-                  <span
-                    className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full flex items-center justify-center text-[7px] sm:text-[9px] font-bold text-white flex-shrink-0"
-                    style={{ backgroundColor: color }}
+        {/* Indicador de cumpleaños (puntos de color) — MÓVIL */}
+        <div className="sm:hidden flex items-center justify-center gap-1 min-h-[12px] pb-0.5">
+          {hasBirthdays ? (
+            dayCumpleanos.slice(0, dotLimit).map(cumple => (
+              <span
+                key={cumple.id}
+                className="w-2 h-2 rounded-full border border-white/60"
+                style={{ backgroundColor: today ? '#fff' : (cumple.sucursal?.color || getSucursalColor(0)) }}
+              />
+            ))
+          ) : (
+            today && <span className="w-2 h-2 rounded-full bg-white/70 border border-white/40" />
+          )}
+        </div>
+
+        {/* Badge "+N" móvil: capa fija inferior para no alterar la cuadrícula */}
+        {hasBirthdays && dayCumpleanos.length > dotLimit && (
+          <span className="absolute bottom-1 right-1 sm:hidden text-[8px] font-bold text-primary-500 bg-primary-50 rounded-full px-1 leading-none">
+            +{dayCumpleanos.length - dotLimit}
+          </span>
+        )}
+
+        {/* Nombres de cumpleaños — ESCRITORIO */}
+        <div className="hidden sm:block space-y-1 mt-1">
+          {dayCumpleanos.length > 0 ? (
+            <>
+              {dayCumpleanos.slice(0, 3).map(cumple => {
+                const color = cumple.sucursal?.color || getSucursalColor(0)
+                return (
+                  <div
+                    key={cumple.id}
+                    onClick={(e) => { e.stopPropagation(); onEditClick(cumple); }}
+                    className={cn(
+                      'cursor-pointer flex items-center gap-1.5 rounded-lg px-1.5 py-0.5 transition-all duration-150',
+                      today ? 'bg-white/95 shadow-sm hover:scale-[1.02]' : 'hover:scale-[1.02] hover:shadow-sm'
+                    )}
+                    style={today ? undefined : { backgroundColor: hexToRgba(color, 0.12) }}
                   >
-                    {cumple.nombre.charAt(0).toUpperCase()}
-                  </span>
-                  <span
-                    className="text-[8px] sm:text-[11px] font-medium truncate"
-                    style={today ? { color: '#BE185D' } : { color }}
-                  >
-                    {cumple.nombre}
-                    {cumple.esHoy && ' 🎂'}
-                  </span>
+                    <span
+                      className="w-3.5 h-3.5 rounded-full flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0"
+                      style={{ backgroundColor: color }}
+                    >
+                      {cumple.nombre.charAt(0).toUpperCase()}
+                    </span>
+                    <span
+                      className="text-[11px] font-medium truncate leading-tight"
+                      style={today ? { color: '#BE185D' } : { color }}
+                    >
+                      {cumple.nombre}
+                      {cumple.esHoy && ' 🎂'}
+                    </span>
+                  </div>
+                )
+              })}
+              {dayCumpleanos.length > 3 && (
+                <div className="text-center text-[11px] font-semibold text-primary-600 py-0.5">
+                  +{dayCumpleanos.length - 3} más
                 </div>
-              )
-            })}
-            {dayCumpleanos.length > 3 && (
-              <div
-                onClick={(e) => { e.stopPropagation(); onAddClick(date); }}
-                className="text-center text-neutral-500 hover:text-primary-600 cursor-pointer py-0.5 rounded hover:bg-primary-50 text-[9px] sm:text-xs font-semibold"
-              >
-                +{dayCumpleanos.length - 3} más
-              </div>
-            )}
-          </div>
+              )}
+            </>
+          ) : null}
+        </div>
+
+        {/* Mini badge "+N" para móvil si hay más de 3 */}
+        {hasBirthdays && dayCumpleanos.length > dotLimit && (
+          <span className="absolute bottom-0.5 right-1 sm:hidden text-[7px] font-bold text-primary-500">
+            +{dayCumpleanos.length - dotLimit}
+          </span>
         )}
       </div>
     )
