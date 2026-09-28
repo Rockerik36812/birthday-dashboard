@@ -29,6 +29,9 @@ WORKDIR /app
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/prisma ./prisma
+
+# Copy config files first for path resolution
+COPY tsconfig.json next.config.js postcss.config.js tailwind.config.ts ./
 COPY . .
 
 # Variables de build
