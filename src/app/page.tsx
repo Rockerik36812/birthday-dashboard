@@ -1,18 +1,24 @@
 import { redirect } from 'next/navigation'
 
-export default async function Home() {
+async function getRegistrationStatus() {
+  const baseUrl = process.env.NEXTAUTH_URL || 'https://cumple.erikservicios.click'
   try {
-    const res = await fetch(`${process.env.NEXTAUTH_URL}/api/registration-status`, {
+    const res = await fetch(`${baseUrl}/api/registration-status`, { 
       cache: 'no-store'
     })
-    const data = await res.json()
-    
-    if (!data.registrationClosed) {
-      redirect('/register')
-    } else {
-      redirect('/login')
-    }
+    return await res.json()
   } catch {
+    // Si falla la llamada, permitimos registro por defecto
+    return { registrationClosed: false, totalUsers: 0 }
+  }
+}
+
+export default async function Home() {
+  const status = await getRegistrationStatus()
+  
+  if (!status.registrationClosed) {
+    redirect('/register')
+  } else {
     redirect('/login')
   }
 }
