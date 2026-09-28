@@ -4,8 +4,8 @@
 # ===== STAGE 1: Base =====
 FROM node:20-alpine AS base
 
-# Instalar dependencias del sistema necesarias para Prisma y Sharp
-RUN apk add --no-cache libc6-compat openssl
+# Instalar dependencias del sistema necesarias para Prisma, Sharp y su-exec
+RUN apk add --no-cache libc6-compat openssl su-exec
 
 WORKDIR /app
 
@@ -61,14 +61,12 @@ COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.prisma ./node_modul
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/prisma ./node_modules/prisma
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma ./node_modules/@prisma
 
-# Entrypoint para inicializar BD
+# Entrypoint para inicializar BD (corre como root para chown, luego su-exec a nextjs)
 COPY --chown=nextjs:nodejs entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
 
 # Volumen para base de datos SQLite
 VOLUME ["/app/data"]
-
-USER nextjs
 
 EXPOSE 3000
 
