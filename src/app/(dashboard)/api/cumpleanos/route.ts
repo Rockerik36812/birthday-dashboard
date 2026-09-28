@@ -1,11 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getServerSession } from '@/lib/auth'
 
-export async function GET() {
+function isAuthed(req: NextRequest): boolean {
+  const token = req.cookies.get('auth-token')?.value
+  if (!token) return false
   try {
-    const session = await getServerSession()
-    if (!session?.user) {
+    JSON.parse(atob(token))
+    return true
+  } catch {
+    return false
+  }
+}
+
+export async function GET(req: NextRequest) {
+  try {
+    if (!isAuthed(req)) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
@@ -23,8 +32,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession()
-    if (!session?.user) {
+    if (!isAuthed(request)) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 

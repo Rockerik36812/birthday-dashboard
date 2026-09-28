@@ -1,16 +1,14 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { Loader2, Mail, Lock, CheckCircle, AlertCircle, Gift } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { Loader2, User, Mail, Lock, CheckCircle, AlertCircle, Gift } from 'lucide-react'
 import { cn } from '@/lib/cn'
 
-export default function LoginPageContent() {
+export default function RegisterPage() {
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const callbackUrl = searchParams.get('callbackUrl') || '/'
-  const error = searchParams.get('error')
-
+  
+  const [nombre, setNombre] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -18,28 +16,32 @@ export default function LoginPageContent() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!email || !password) return
-
+    
     setIsLoading(true)
     setMessage(null)
 
     try {
-      const res = await fetch('/api/auth/signin', {
+      const res = await fetch('/api/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ nombre, email, password }),
       })
 
-      if (res.redirected) {
-        router.push(callbackUrl)
-        router.refresh()
-      } else {
-        const data = await res.json()
+      const data = await res.json()
+
+      if (!res.ok) {
         setMessage({ 
           type: 'error', 
-          text: data.error || 'Credenciales incorrectas' 
+          text: data.error || data.details?.[0]?.message || 'Error al crear la cuenta' 
         })
+        return
       }
+
+      setMessage({ type: 'success', text: '¡Cuenta creada! Redirigiendo al login...' })
+      
+      setTimeout(() => {
+        router.push('/login')
+      }, 1500)
     } catch (err) {
       setMessage({ type: 'error', text: 'Error de conexión. Intenta de nuevo.' })
     } finally {
@@ -56,18 +58,11 @@ export default function LoginPageContent() {
             <Gift className="w-10 h-10 text-white" />
           </div>
           <h1 className="font-display font-bold text-3xl text-neutral-900 mb-2">Birthday Dashboard</h1>
-          <p className="text-neutral-600">Panel de Cumpleaños del Equipo</p>
+          <p className="text-neutral-600">Crear tu cuenta</p>
         </div>
 
         {/* Formulario */}
         <div className="card p-6 sm:p-8 animate-in">
-          {error && (
-            <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 flex items-center gap-3 text-red-700 animate-in">
-              <AlertCircle className="w-5 h-5 flex-shrink-0" />
-              <p className="text-sm">Error de autenticación. Intenta de nuevo.</p>
-            </div>
-          )}
-
           {message && (
             <div className={cn(
               'mb-6 p-4 rounded-xl flex items-center gap-3 text-sm animate-in',
@@ -86,6 +81,25 @@ export default function LoginPageContent() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
+              <label htmlFor="nombre" className="label flex items-center gap-1.5">
+                <User className="w-4 h-4 text-primary-500" />
+                Nombre completo
+              </label>
+              <input
+                id="nombre"
+                type="text"
+                value={nombre}
+                onChange={(e) => setNombre(e.target.value)}
+                placeholder="Tu nombre"
+                className="input"
+                required
+                autoComplete="name"
+                autoFocus
+                disabled={isLoading}
+              />
+            </div>
+
+            <div>
               <label htmlFor="email" className="label flex items-center gap-1.5">
                 <Mail className="w-4 h-4 text-primary-500" />
                 Correo electrónico
@@ -99,7 +113,6 @@ export default function LoginPageContent() {
                 className="input"
                 required
                 autoComplete="email"
-                autoFocus
                 disabled={isLoading}
               />
             </div>
@@ -114,38 +127,35 @@ export default function LoginPageContent() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Tu contraseña"
+                placeholder="Mínimo 6 caracteres"
                 className="input"
                 required
-                autoComplete="current-password"
+                minLength={6}
+                autoComplete="new-password"
                 disabled={isLoading}
               />
             </div>
 
             <button
               type="submit"
-              disabled={isLoading || !email || !password}
+              disabled={isLoading || !nombre || !email || !password}
               className="w-full btn-primary gap-2 justify-center py-3 mt-2"
             >
               {isLoading ? (
                 <span className="flex items-center justify-center gap-2">
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  Ingresando...
+                  Creando cuenta...
                 </span>
               ) : (
-                'Iniciar sesión'
+                'Crear cuenta'
               )}
             </button>
           </form>
 
-          <div className="mt-4 text-center">
-            <p className="text-xs text-neutral-500">
-              ¿No tienes cuenta?{' '}
-              <a href="/register" className="text-primary-600 hover:underline font-medium">
-                Regístrate aquí
-              </a>
-            </p>
-          </div>
+          <p className="mt-6 text-center text-xs text-neutral-500">
+            ¿Ya tienes cuenta?{' '}
+            <a href="/login" className="text-primary-600 hover:underline">Inicia sesión</a>
+          </p>
         </div>
       </div>
     </div>

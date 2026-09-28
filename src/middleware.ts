@@ -1,25 +1,40 @@
-import { auth } from '@/lib/auth'
 import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
 
-export default auth((req) => {
-  const isLoggedIn = !!req.auth
+// Helper para verificar autenticación desde la cookie
+function isAuthed(req: NextRequest): boolean {
+  const token = req.cookies.get('auth-token')?.value
+  if (!token) return false
+  try {
+    JSON.parse(atob(token))
+    return true
+  } catch {
+    return false
+  }
+}
+
+export function middleware(req: NextRequest) {
+  const isLoggedIn = isAuthed(req)
   const isOnLogin = req.nextUrl.pathname.startsWith('/login')
-  const isOnApi = req.nextUrl.pathname.startsWith('/api')
+  const isOnRegister = req.nextUrl.pathname.startsWith('/register')
+  const isOnApi = req.nextUrl.pathname.startsWith('/api/auth/signin') || 
+                  req.nextUrl.pathname.startsWith('/api/register') ||
+                  req.nextUrl.pathname.startsWith('/api/cumpleanos') ||
+                  req.nextUrl.pathname.startsWith('/api/sucursales')
 
-  if (isOnLogin) {
-    if (isLoggedIn) {
-      return NextResponse.redirect(new URL('/', req.url))
-    }
-    return NextResponse.next()
+  // Redirigir autenticados fuera del login/registro
+  if (isLoggedIn && (isOnLogin || isOnRegister)) {
+    return NextResponse.redirect(new URL('/', req.url))
   }
 
-  if (!isLoggedIn && !isOnApi) {
+  // Proteger rutas — si no está logueado y es protegida
+  if (!isLoggedIn && !isOnLogin && !isOnRegister && !isOnApi) {
     return NextResponse.redirect(new URL('/login', req.url))
   }
 
   return NextResponse.next()
-})
+}
 
 export const config = {
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|.*\\.png$).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.png$).*)'],
 }

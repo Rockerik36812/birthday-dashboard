@@ -1,14 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getServerSession } from '@/lib/auth'
+
+function isAuthed(req: NextRequest): boolean {
+  const token = req.cookies.get('auth-token')?.value
+  if (!token) return false
+  try {
+    JSON.parse(atob(token))
+    return true
+  } catch {
+    return false
+  }
+}
 
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession()
-    if (!session?.user) {
+    if (!isAuthed(request)) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
@@ -43,13 +52,11 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession()
-    if (!session?.user) {
+    if (!isAuthed(request)) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
     const { id } = await params
-
     await prisma.cumpleanos.delete({ where: { id } })
 
     return NextResponse.json({ success: true })
