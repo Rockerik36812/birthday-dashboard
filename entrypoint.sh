@@ -18,4 +18,4 @@ su-exec nextjs node node_modules/prisma/build/index.js db push --schema prisma/s
 }
 echo "✅ Base de datos lista"
 
-exec su-exec nextjs npm start --prefix /app 2>&1
+exec su-exec nextjs node ./node_modules/next/dist/bin/next start 2>&1

@@ -1,5 +1,9 @@
 'use client'
 
+// Skip prerender — evita crash de prerender en Next.js 14 con componentes cliente
+export const dynamic = 'force-dynamic'
+
+
 import { Suspense } from 'react'
 import LoginContent from './LoginContent'
 

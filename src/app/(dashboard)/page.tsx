@@ -1,5 +1,8 @@
 'use client'
 
+// Forzar renderizado dinámico — evita crash de prerender en Next.js 14 con componentes cliente
+export const dynamic = 'force-dynamic'
+
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { Loader2, Building2, Gift, Calendar as CalendarIcon, Filter, Plus, Download, Settings, LogOut, ChevronDown, Sparkles, Trash2, Info } from 'lucide-react'
