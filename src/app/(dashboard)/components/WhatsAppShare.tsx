@@ -7,7 +7,7 @@ import { CumpleanosConEdad } from '@/types'
 import { Share2, Download, Check, Loader2, X, Image, Smartphone } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { getSucursalColor, hexToRgba } from '@/lib/colors'
-import { getAge, format, parseBirthdayLocal } from '@/lib/utils'
+import { format, parseBirthdayLocal, getAgeInYear } from '@/lib/utils'
 import { es } from 'date-fns/locale'
 import { Gift, MapPin, MessageSquare, Heart, Sparkles, Calendar } from 'lucide-react'
 
@@ -29,9 +29,10 @@ export function WhatsAppShare({ cumple, cumpleList, mode, month, onClose }: What
   const refMonth = month ?? new Date()
 
   const items = mode === 'individual' ? (cumple ? [cumple] : []) : (cumpleList || [])
+  const year = refMonth.getFullYear()
   const message = mode === 'individual'
-    ? (cumple ? generateWhatsAppMessage(cumple.nombre, cumple.mensaje, getAge(cumple.fecha)) : '')
-    : generateWhatsAppGroupMessage(items.map(c => ({ nombre: c.nombre, mensaje: c.mensaje, edad: getAge(c.fecha) })), refMonth)
+    ? (cumple ? generateWhatsAppMessage(cumple.nombre, cumple.mensaje, getAgeInYear(cumple.fecha, year)) : '')
+    : generateWhatsAppGroupMessage(items.map(c => ({ nombre: c.nombre, mensaje: c.mensaje, edad: getAgeInYear(c.fecha, year) })), refMonth)
 
   const generateCardImage = useCallback(async () => {
     if (!cardRef.current) return
@@ -107,7 +108,7 @@ export function WhatsAppShare({ cumple, cumpleList, mode, month, onClose }: What
 
     if (mode === 'individual' && cumple) {
       const sucursalColor = cumple.sucursal?.color || '#EC407A'
-      const edad = getAge(cumple.fecha)
+      const edad = getAgeInYear(cumple.fecha, refMonth.getFullYear())
       const esHoy = cumple.esHoy
 
       return (
@@ -238,7 +239,7 @@ export function WhatsAppShare({ cumple, cumpleList, mode, month, onClose }: What
                   </p>
                 </div>
                 <span className="text-sm font-bold" style={{ color: c.sucursal?.color || firstColor }}>
-                  {getAge(c.fecha)} años
+                  {getAgeInYear(c.fecha, refMonth.getFullYear())} años
                 </span>
               </div>
             ))}

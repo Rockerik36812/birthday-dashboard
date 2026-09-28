@@ -33,6 +33,16 @@ export function getAge(birthDate: Date | string): number {
   return age
 }
 
+/**
+ * Edad que cumple la persona en un AÑO concreto (no "hoy"). Útil para que la
+ * tarjeta refleje la edad del cumpleaños mostrado en el calendario: si ves
+ * junio 2026 → 37, si ves junio 2027 → 38.
+ */
+export function getAgeInYear(birthDate: Date | string, year: number): number {
+  const birth = typeof birthDate === 'string' ? parseBirthdayLocal(birthDate) : birthDate
+  return year - birth.getFullYear()
+}
+
 export function getDaysUntilBirthday(birthDate: Date | string): number {
   const birth = typeof birthDate === 'string' ? parseBirthdayLocal(birthDate) : birthDate
   const today = new Date()

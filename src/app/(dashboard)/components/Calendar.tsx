@@ -6,7 +6,7 @@ import { es } from 'date-fns/locale'
 import { ChevronLeft, ChevronRight, Plus, Filter, Gift, Building2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { getSucursalColor, hexToRgba } from '@/lib/colors'
-import { parseBirthdayLocal } from '@/lib/utils'
+import { parseBirthdayLocal, getAgeInYear } from '@/lib/utils'
 import { CumpleanosConEdad, Sucursal } from '@/types'
 
 interface CalendarProps {
@@ -253,7 +253,7 @@ export function Calendar({
                       </p>
                     </div>
                     <span className="text-xs sm:text-sm font-semibold text-neutral-400">
-                      {cumple.edad} años
+                      {getAgeInYear(cumple.fecha, currentMonth.getFullYear())} años
                     </span>
                   </div>
                 )
