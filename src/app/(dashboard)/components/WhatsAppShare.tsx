@@ -7,7 +7,7 @@ import { CumpleanosConEdad } from '@/types'
 import { Share2, Download, Check, Loader2, X, Image, Smartphone } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { getSucursalColor, hexToRgba } from '@/lib/colors'
-import { getAge, format } from '@/lib/utils'
+import { getAge, format, parseBirthdayLocal } from '@/lib/utils'
 import { es } from 'date-fns/locale'
 import { Gift, MapPin, MessageSquare, Heart, Sparkles, Calendar } from 'lucide-react'
 
@@ -15,20 +15,23 @@ interface WhatsAppShareProps {
   cumple?: CumpleanosConEdad | null
   cumpleList?: CumpleanosConEdad[]
   mode: 'individual' | 'group'
+  month?: Date
   onClose: () => void
 }
 
-export function WhatsAppShare({ cumple, cumpleList, mode, onClose }: WhatsAppShareProps) {
+export function WhatsAppShare({ cumple, cumpleList, mode, month, onClose }: WhatsAppShareProps) {
   const [imageBlob, setImageBlob] = useState<Blob | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
   const [isSharing, setIsSharing] = useState(false)
   const [shareSuccess, setShareSuccess] = useState(false)
   const cardRef = useRef<HTMLDivElement>(null)
+  // Mes mostrado (para modo grupal)
+  const refMonth = month ?? new Date()
 
   const items = mode === 'individual' ? (cumple ? [cumple] : []) : (cumpleList || [])
   const message = mode === 'individual'
     ? (cumple ? generateWhatsAppMessage(cumple.nombre, cumple.mensaje, getAge(cumple.fecha)) : '')
-    : generateWhatsAppGroupMessage(items.map(c => ({ nombre: c.nombre, mensaje: c.mensaje, edad: getAge(c.fecha) })))
+    : generateWhatsAppGroupMessage(items.map(c => ({ nombre: c.nombre, mensaje: c.mensaje, edad: getAge(c.fecha) })), refMonth)
 
   const generateCardImage = useCallback(async () => {
     if (!cardRef.current) return
@@ -154,10 +157,10 @@ export function WhatsAppShare({ cumple, cumpleList, mode, onClose }: WhatsAppSha
               </div>
               <div className="border-x border-neutral-200/50">
                 <p className="font-display font-bold text-2xl text-neutral-900">
-                  {format(new Date(cumple.fecha), 'd', { locale: es })}
+                  {format(parseBirthdayLocal(cumple.fecha), 'd', { locale: es })}
                 </p>
                 <p className="text-sm text-neutral-600 capitalize">
-                  {format(new Date(cumple.fecha), 'MMMM', { locale: es })}
+                  {format(parseBirthdayLocal(cumple.fecha), 'MMMM', { locale: es })}
                 </p>
               </div>
               <div>
@@ -208,7 +211,7 @@ export function WhatsAppShare({ cumple, cumpleList, mode, onClose }: WhatsAppSha
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-3" style={{ backgroundColor: hexToRgba(firstColor, 0.2), color: firstColor }}>
               <Calendar className="w-5 h-5" />
               <span className="font-bold text-sm">
-                Cumpleañeros de {format(new Date(), 'MMMM', { locale: es }).charAt(0).toUpperCase() + format(new Date(), 'MMMM', { locale: es }).slice(1)}
+                Cumpleañeros de {format(refMonth, 'MMMM', { locale: es }).charAt(0).toUpperCase() + format(refMonth, 'MMMM', { locale: es }).slice(1)}
               </span>
             </div>
           </div>

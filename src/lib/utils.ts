@@ -5,8 +5,25 @@ import { cn } from './cn'
 export { cn }
 export { format, formatDistanceToNow, isToday, isTomorrow, isYesterday, startOfDay, endOfDay, es }
 
+/**
+ * Convierte una fecha ISO (ej. "1989-06-16T00:00:00.000Z") a un objeto Date
+ * con componentes LOCALES a mediodía. Evita el corrimiento de día por zona
+ * horaria (UTC- medianoche -> día anterior en UTC-6). Sin esto, un cumpleaños
+ * del 16 se mostraría el 15 en México.
+ */
+export function parseBirthdayLocal(birthDate: Date | string): Date {
+  const src = typeof birthDate === 'string'
+    ? birthDate
+    : birthDate instanceof Date && !Number.isNaN(birthDate.getTime()) ? birthDate.toISOString() : ''
+  if (!src) return new Date(birthDate)
+  // Tomamos Y-M-D del inicio del ISO y construimos fecha local a mediodía
+  const [y, m, d] = src.slice(0, 10).split('-').map(Number)
+  if (!y || !m || !d || Number.isNaN(d)) return new Date(src)
+  return new Date(y, m - 1, d, 12, 0, 0)
+}
+
 export function getAge(birthDate: Date | string): number {
-  const birth = typeof birthDate === 'string' ? new Date(birthDate) : birthDate
+  const birth = typeof birthDate === 'string' ? parseBirthdayLocal(birthDate) : birthDate
   const today = new Date()
   let age = today.getFullYear() - birth.getFullYear()
   const monthDiff = today.getMonth() - birth.getMonth()
@@ -17,7 +34,7 @@ export function getAge(birthDate: Date | string): number {
 }
 
 export function getDaysUntilBirthday(birthDate: Date | string): number {
-  const birth = typeof birthDate === 'string' ? new Date(birthDate) : birthDate
+  const birth = typeof birthDate === 'string' ? parseBirthdayLocal(birthDate) : birthDate
   const today = new Date()
   const nextBirthday = new Date(today.getFullYear(), birth.getMonth(), birth.getDate())
   if (nextBirthday < today) {
@@ -28,15 +45,20 @@ export function getDaysUntilBirthday(birthDate: Date | string): number {
 }
 
 export function isBirthdayThisMonth(birthDate: Date | string): boolean {
-  const birth = typeof birthDate === 'string' ? new Date(birthDate) : birthDate
+  const birth = typeof birthDate === 'string' ? parseBirthdayLocal(birthDate) : birthDate
   const today = new Date()
   return birth.getMonth() === today.getMonth()
 }
 
 export function isBirthdayToday(birthDate: Date | string): boolean {
-  const birth = typeof birthDate === 'string' ? new Date(birthDate) : birthDate
+  const birth = typeof birthDate === 'string' ? parseBirthdayLocal(birthDate) : birthDate
   const today = new Date()
   return birth.getMonth() === today.getMonth() && birth.getDate() === today.getDate()
+}
+
+export function isBirthdayInMonth(birthDate: Date | string, monthIndex: number): boolean {
+  const birth = typeof birthDate === 'string' ? parseBirthdayLocal(birthDate) : birthDate
+  return birth.getMonth() === monthIndex
 }
 
 export function generateWhatsAppMessage(nombre: string, mensaje: string, edad?: number): string {
@@ -44,9 +66,9 @@ export function generateWhatsAppMessage(nombre: string, mensaje: string, edad?: 
   return `🎂 ¡Feliz Cumpleaños ${nombre}${edadText}!\n\n${mensaje}\n\n— Enviado desde Birthday Dashboard`
 }
 
-export function generateWhatsAppGroupMessage(cumpleaneros: Array<{ nombre: string; mensaje: string; edad?: number }>): string {
-  const hoy = new Date()
-  const mes = hoy.toLocaleDateString('es-MX', { month: 'long' })
+export function generateWhatsAppGroupMessage(cumpleaneros: Array<{ nombre: string; mensaje: string; edad?: number }>, month?: Date): string {
+  const base = month ?? new Date()
+  const mes = base.toLocaleDateString('es-MX', { month: 'long' })
   const lineas = cumpleaneros.map((c, i) =>
     `${i + 1}. 🎂 ${c.nombre}${c.edad ? ` (${c.edad} años)` : ''}:\n   "${c.mensaje}"`
   ).join('\n\n')

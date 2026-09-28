@@ -10,7 +10,7 @@ import { Loader2, Building2, Gift, Calendar as CalendarIcon, Filter, Plus, Downl
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
-import { getAge, getDaysUntilBirthday, isBirthdayToday, isBirthdayThisMonth } from '@/lib/utils'
+import { getAge, getDaysUntilBirthday, isBirthdayToday, isBirthdayThisMonth, isBirthdayInMonth, parseBirthdayLocal } from '@/lib/utils'
 import { Calendar } from '@/app/(dashboard)/components/Calendar'
 import { BirthdayModal } from '@/app/(dashboard)/components/BirthdayModal'
 import { WhatsAppShare } from '@/app/(dashboard)/components/WhatsAppShare'
@@ -157,6 +157,7 @@ function Dashboard() {
   const [viewMode, setViewMode] = useState<'calendar' | 'list' | 'cards'>('calendar')
   const [showUserManager, setShowUserManager] = useState(false)
   const [showSucursalesModal, setShowSucursalesModal] = useState(false)
+  const [calCurrentMonth, setCalCurrentMonth] = useState<Date>(new Date())
   const [users, setUsers] = useState<{ id: string; nombre: string; email: string; role: string }[]>([])
 
   // Redirigir si no hay sesión — decidir a /register (sin admin) o /login (ya existe)
@@ -260,8 +261,8 @@ function Dashboard() {
   }
 
   const handleShareGroup = () => {
-    const mesActual = new Date().getMonth()
-    const cumpleMes = cumpleanos.filter(c => new Date(c.fecha).getMonth() === mesActual)
+    const mesVisto = calCurrentMonth.getMonth()
+    const cumpleMes = cumpleanos.filter(c => isBirthdayInMonth(c.fecha, mesVisto))
     if (cumpleMes.length === 0) {
       alert('No hay cumpleaños este mes')
       return
@@ -273,7 +274,7 @@ function Dashboard() {
     ? cumpleanos.filter(c => c.sucursalId === selectedSucursal)
     : cumpleanos
 
-  const cumpleMes = filteredCumpleanos.filter(c => isBirthdayThisMonth(c.fecha))
+  const cumpleMes = filteredCumpleanos.filter(c => isBirthdayInMonth(c.fecha, calCurrentMonth.getMonth()))
   const cumpleHoy = filteredCumpleanos.filter(c => isBirthdayToday(c.fecha))
   const cumpleProximos = filteredCumpleanos
     .filter(c => !isBirthdayToday(c.fecha) && c.diasParaCumple <= 30)
@@ -493,6 +494,8 @@ function Dashboard() {
             sucursales={sucursales}
             selectedSucursal={selectedSucursal}
             onSucursalChange={setSelectedSucursal}
+            currentMonth={calCurrentMonth}
+            onMonthChange={setCalCurrentMonth}
             onAddClick={(date) => {
               setEditingCumple(null)
               setIsModalOpen(true)
@@ -537,7 +540,7 @@ function Dashboard() {
                         </div>
                         <p className="text-sm text-neutral-500 flex items-center gap-1 mt-0.5">
                           <CalendarIcon className="w-3.5 h-3.5" />
-                          {format(new Date(cumple.fecha), 'd MMMM', { locale: es })} · {cumple.edad} años
+                          {format(parseBirthdayLocal(cumple.fecha), 'd MMMM', { locale: es })} · {cumple.edad} años
                         </p>
                         {cumple.sucursal && (
                           <p className="text-xs text-neutral-500 flex items-center gap-1 mt-0.5" style={{ color: cumple.sucursal.color }}>
@@ -613,7 +616,7 @@ function Dashboard() {
         sucursales={sucursales}
         initialData={editingCumple ? {
           nombre: editingCumple.nombre,
-          fecha: format(new Date(editingCumple.fecha), 'yyyy-MM-dd'),
+          fecha: format(parseBirthdayLocal(editingCumple.fecha), 'yyyy-MM-dd'),
           sucursalId: editingCumple.sucursalId,
           mensaje: editingCumple.mensaje,
         } : null}
@@ -631,9 +634,10 @@ function Dashboard() {
         <WhatsAppShare
           cumple={showWhatsAppShare.cumple}
           cumpleList={showWhatsAppShare.mode === 'group'
-            ? filteredCumpleanos.filter(c => isBirthdayThisMonth(c.fecha))
+            ? filteredCumpleanos.filter(c => isBirthdayInMonth(c.fecha, calCurrentMonth.getMonth()))
             : undefined}
           mode={showWhatsAppShare.mode}
+          month={calCurrentMonth}
           onClose={() => setShowWhatsAppShare(null)}
         />
       )}

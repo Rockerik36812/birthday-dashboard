@@ -6,6 +6,7 @@ import { es } from 'date-fns/locale'
 import { ChevronLeft, ChevronRight, Plus, Filter, Gift, Building2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { getSucursalColor, hexToRgba } from '@/lib/colors'
+import { parseBirthdayLocal } from '@/lib/utils'
 import { CumpleanosConEdad, Sucursal } from '@/types'
 
 interface CalendarProps {
@@ -15,6 +16,8 @@ interface CalendarProps {
   onSucursalChange: (id: string | null) => void
   onAddClick: (date?: Date) => void
   onEditClick: (cumple: CumpleanosConEdad) => void
+  currentMonth?: Date
+  onMonthChange?: (month: Date) => void
 }
 
 const DIAS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
@@ -26,8 +29,16 @@ export function Calendar({
   onSucursalChange,
   onAddClick,
   onEditClick,
+  currentMonth: currentMonthProp,
+  onMonthChange,
 }: CalendarProps) {
-  const [currentMonth, setCurrentMonth] = useState(new Date())
+  // Mes controlado por el padre (para que el botón "Compartir Mes" coincida)
+  const [currentMonthInternal, setCurrentMonthInternal] = useState(new Date())
+  const currentMonth = currentMonthProp ?? currentMonthInternal
+  const setCurrentMonth = (fn: (d: Date) => Date) => {
+    const next = fn(currentMonth)
+    ;(onMonthChange ?? setCurrentMonthInternal)(next)
+  }
   const [selectedDay, setSelectedDay] = useState<Date | null>(null)
 
   const filteredCumpleanos = selectedSucursal
@@ -41,13 +52,13 @@ export function Calendar({
 
   const getCumpleanosForDay = (date: Date) =>
     filteredCumpleanos.filter(c => {
-      const cd = new Date(c.fecha)
+      const cd = parseBirthdayLocal(c.fecha)
       return cd.getMonth() === date.getMonth() && cd.getDate() === date.getDate()
     })
 
   // Cumpleaños del mes mostrado (compara solo mes/día, ignora el año de nacimiento)
   const cumpleanosDelMes = filteredCumpleanos.filter(c => {
-    const cd = new Date(c.fecha)
+    const cd = parseBirthdayLocal(c.fecha)
     return cd.getMonth() === currentMonth.getMonth()
   })
 
@@ -233,7 +244,7 @@ export function Calendar({
                         {cumple.esHoy && <span className="ml-1 text-[10px] align-middle">🎂 Hoy</span>}
                       </p>
                       <p className="text-xs sm:text-sm text-neutral-500 flex items-center gap-1.5">
-                        {format(new Date(cumple.fecha), 'd MMMM', { locale: es })}
+                        {format(parseBirthdayLocal(cumple.fecha), 'd MMMM', { locale: es })}
                         {cumple.sucursal && (
                           <span className="inline-flex items-center gap-1" style={{ color: cumple.sucursal.color }}>
                             · {cumple.sucursal.nombre}
