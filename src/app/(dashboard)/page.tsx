@@ -5,7 +5,6 @@ export const dynamic = 'force-dynamic'
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useSession } from 'next-auth/react'
 import { useAuth } from '@/lib/use-auth'
 import { Loader2, Building2, Gift, Calendar as CalendarIcon, Filter, Plus, Download, Settings, LogOut, ChevronDown, Sparkles, Trash2, Info } from 'lucide-react'
 import { format } from 'date-fns'
@@ -16,6 +15,7 @@ import { Calendar } from '@/app/(dashboard)/components/Calendar'
 import { BirthdayModal } from '@/app/(dashboard)/components/BirthdayModal'
 import { WhatsAppShare } from '@/app/(dashboard)/components/WhatsAppShare'
 import { BirthdayCard } from '@/app/(dashboard)/components/BirthdayCard'
+import { SucursalesModal } from '@/app/(dashboard)/components/SucursalesModal'
 import { CumpleanosConEdad, Sucursal } from '@/types'
 import { hexToRgba } from '@/lib/colors'
 
@@ -156,6 +156,7 @@ function Dashboard() {
   const [showWhatsAppShare, setShowWhatsAppShare] = useState<{ mode: 'individual' | 'group'; cumple?: CumpleanosConEdad } | null>(null)
   const [viewMode, setViewMode] = useState<'calendar' | 'list' | 'cards'>('calendar')
   const [showUserManager, setShowUserManager] = useState(false)
+  const [showSucursalesModal, setShowSucursalesModal] = useState(false)
   const [users, setUsers] = useState<{ id: string; nombre: string; email: string; role: string }[]>([])
 
   // Redirigir si no hay sesión — decidir a /register (sin admin) o /login (ya existe)
@@ -455,14 +456,32 @@ function Dashboard() {
             </select>
           </div>
 
-          <div className="flex items-center gap-2 w-full sm:w-auto">
+          <div className="flex items-center justify-between gap-2 w-full sm:w-auto flex-wrap sm:flex-nowrap">
             <button onClick={handleShareGroup} className="btn-whatsapp gap-2 flex-1 sm:flex-none justify-center" disabled={cumpleMes.length === 0}>
               <Gift className="w-4 h-4" />
               <span className="flex-1 sm:flex-none text-center">Compartir Mes ({cumpleMes.length})</span>
             </button>
-            <button onClick={() => { setEditingCumple(null); setIsModalOpen(true); }} className="btn-primary gap-2 flex-1 sm:flex-none justify-center">
+            <button
+              onClick={() => {
+                if (sucursales.length === 0) {
+                  alert('Primero crea una sucursal para asociar los cumpleaños')
+                  setShowSucursalesModal(true)
+                  return
+                }
+                setEditingCumple(null); setIsModalOpen(true)
+              }}
+              className="btn-primary gap-2 flex-1 sm:flex-none justify-center"
+            >
               <Plus className="w-4 h-4" />
               <span className="flex-1 sm:flex-none text-center">Nuevo</span>
+            </button>
+            <button
+              onClick={() => setShowSucursalesModal(true)}
+              className="btn-secondary gap-2 flex-1 sm:flex-none justify-center"
+              title="Gestionar sucursales"
+            >
+              <Building2 className="w-4 h-4" />
+              <span className="flex-1 sm:flex-none text-center">Sucursales</span>
             </button>
           </div>
         </div>
@@ -599,6 +618,13 @@ function Dashboard() {
           mensaje: editingCumple.mensaje,
         } : null}
         isLoading={isSubmitting}
+      />
+
+      <SucursalesModal
+        isOpen={showSucursalesModal}
+        onClose={() => setShowSucursalesModal(false)}
+        sucursales={sucursales}
+        onChanged={fetchData}
       />
 
       {showWhatsAppShare && (
