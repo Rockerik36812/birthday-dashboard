@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
-import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, isSameMonth, isSameDay, isToday, parseISO } from 'date-fns'
+import { useState } from 'react'
+import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, isSameMonth, isSameDay, isToday } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { ChevronLeft, ChevronRight, Plus, Filter, Calendar as CalendarIcon, Gift, Building2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, Filter, Gift, Building2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { getSucursalColor, hexToRgba } from '@/lib/colors'
 import { CumpleanosConEdad, Sucursal } from '@/types'
@@ -17,6 +17,8 @@ interface CalendarProps {
   onEditClick: (cumple: CumpleanosConEdad) => void
 }
 
+const DIAS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
+
 export function Calendar({
   cumpleanos,
   sucursales,
@@ -26,7 +28,7 @@ export function Calendar({
   onEditClick,
 }: CalendarProps) {
   const [currentMonth, setCurrentMonth] = useState(new Date())
-  const [viewMode, setViewMode] = useState<'month' | 'week'>('month')
+  const [selectedDay, setSelectedDay] = useState<Date | null>(null)
 
   const filteredCumpleanos = selectedSucursal
     ? cumpleanos.filter(c => c.sucursalId === selectedSucursal)
@@ -37,220 +39,145 @@ export function Calendar({
   const calendarStart = startOfWeek(monthStart, { weekStartsOn: 1 })
   const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 1 })
 
-  const getCumpleanosForDay = (date: Date) => {
-    return filteredCumpleanos.filter(c => {
-      const cDate = new Date(c.fecha)
-      return isSameDay(cDate, date)
+  const getCumpleanosForDay = (date: Date) =>
+    filteredCumpleanos.filter(c => {
+      const cd = new Date(c.fecha)
+      return cd.getMonth() === date.getMonth() && cd.getDate() === date.getDate()
     })
-  }
 
-  const getCumpleanosForWeek = (weekStart: Date) => {
-    const weekEnd = addDays(weekStart, 6)
-    return filteredCumpleanos.filter(c => {
-      const cDate = new Date(c.fecha)
-      return cDate >= weekStart && cDate <= weekEnd
-    })
+  // Cumpleaños del mes mostrado (compara solo mes/día, ignora el año de nacimiento)
+  const cumpleanosDelMes = filteredCumpleanos.filter(c => {
+    const cd = new Date(c.fecha)
+    return cd.getMonth() === currentMonth.getMonth()
+  })
+
+  // Reunir los días en semanas
+  const weeks: Date[][] = []
+  let cursor = calendarStart
+  while (cursor <= calendarEnd) {
+    const week = Array.from({ length: 7 }).map((_, i) => addDays(cursor, i))
+    weeks.push(week)
+    cursor = addDays(cursor, 7)
   }
 
   const renderDay = (date: Date, isCurrentMonth: boolean) => {
     const dayCumpleanos = getCumpleanosForDay(date)
     const today = isToday(date)
-    const isSelected = false // Podríamos agregar selección de día
-    const hasBirthdays = dayCumpleanos.length > 0
-    // Máximo de puntos a mostrar en móvil
-    const dotLimit = 3
+    const selected = selectedDay ? isSameDay(date, selectedDay) : false
+    const has = dayCumpleanos.length > 0
+    // Color principal del día (primer cumpleaños)
+    const color = dayCumpleanos[0]?.sucursal?.color || getSucursalColor(0)
 
     return (
-      <div
-        key={date.toISOString()}
-        onClick={() => dayCumpleanos.length > 0 && onEditClick(dayCumpleanos[0])}
-        className={cn(
-          'relative flex flex-col items-center sm:items-stretch justify-between cursor-pointer',
-          'rounded-lg sm:rounded-xl border transition-all duration-200 select-none',
-          // Móvil: celda cuadrada compacta; escritorio: más alta y espaciosa
-          'aspect-square sm:aspect-auto p-0.5 sm:p-2 sm:min-h-[104px]',
-          // Tema
-          today
-            ? 'bg-gradient-to-br from-primary-500 to-secondary-500 border-transparent text-white shadow-lg shadow-primary-200/60'
-            : hasBirthdays
-              ? 'bg-primary-50/50 border-primary-200/70 hover:border-primary-300 hover:shadow-md'
-              : 'border-neutral-200/70 bg-white hover:border-primary-300 hover:bg-primary-50/30',
-          !isCurrentMonth && 'border-transparent bg-neutral-50/60 text-neutral-400 opacity-60'
-        )}
-      >
-        {/* Número del día */}
-        <div className={cn(
-          'flex items-center justify-between w-full',
-          today ? 'text-white' : ''
-        )}>
-          <span className={cn(
-            'font-medium leading-none',
-            today
-              ? 'text-white text-[11px] sm:text-sm font-bold bg-white/30 rounded-md px-1 py-0.5'
-              : 'text-neutral-700 text-[11px] sm:text-sm'
-          )}>
-            {format(date, 'd', { locale: es })}
-          </span>
-          {today && <span className="text-[7px] sm:text-[10px] badge-success px-1">🎂 Hoy</span>}
-        </div>
+      <div key={date.toISOString()} className="flex flex-col items-center gap-0.5 sm:gap-1 select-none">
+        {/* Número en círculo */}
+        <button
+          onClick={() => setSelectedDay(date)}
+          className={cn(
+            'relative flex items-center justify-center rounded-full transition-all duration-150',
+            'w-7 h-7 sm:w-11 sm:h-11 text-[11px] sm:text-sm font-semibold sm:font-bold',
+            // Hoy: relleno rosa con borde
+            today && 'bg-gradient-to-br from-primary-500 to-secondary-500 text-white shadow-md shadow-primary-200',
+            // Con cumpleaños (no hoy): círculo de color con texto blanco
+            !today && has && 'ring-0 text-white',
+            // Sin cumpleaños
+            !today && !has && 'text-neutral-500 hover:bg-neutral-100',
+            // Fuera de mes
+            !isCurrentMonth && 'opacity-40',
+            // Seleccionado
+            selected && !today && 'ring-2 ring-primary-300 ring-offset-0'
+          )}
+          style={
+            !today && has
+              ? { backgroundColor: color, boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }
+              : undefined
+          }
+          aria-label={`Día ${format(date, 'd')} de ${format(date, 'MMMM', { locale: es })}`}
+        >
+          {format(date, 'd', { locale: es })}
+        </button>
 
-        {/* Indicador de cumpleaños (puntos de color) — MÓVIL */}
-        <div className="sm:hidden flex items-center justify-center gap-1 min-h-[12px] pb-0.5">
-          {hasBirthdays ? (
-            dayCumpleanos.slice(0, dotLimit).map(cumple => (
+        {/* Indicador: mini puntos cuando hay varios cumpleaños en un día */}
+        <div className="flex items-center gap-0.5 min-h-[6px] sm:min-h-[8px]">
+          {has && dayCumpleanos.length > 0 ? (
+            dayCumpleanos.slice(0, 4).map(cumple => (
               <span
                 key={cumple.id}
-                className="w-2 h-2 rounded-full border border-white/60"
-                style={{ backgroundColor: today ? '#fff' : (cumple.sucursal?.color || getSucursalColor(0)) }}
+                className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full"
+                style={{ backgroundColor: cumple.sucursal?.color || getSucursalColor(0) }}
               />
             ))
           ) : (
-            today && <span className="w-2 h-2 rounded-full bg-white/70 border border-white/40" />
+            <span className="w-1 h-1" />
           )}
         </div>
-
-        {/* Badge "+N" móvil: capa fija inferior para no alterar la cuadrícula */}
-        {hasBirthdays && dayCumpleanos.length > dotLimit && (
-          <span className="absolute bottom-1 right-1 sm:hidden text-[8px] font-bold text-primary-500 bg-primary-50 rounded-full px-1 leading-none">
-            +{dayCumpleanos.length - dotLimit}
-          </span>
-        )}
-
-        {/* Nombres de cumpleaños — ESCRITORIO */}
-        <div className="hidden sm:block space-y-1 mt-1">
-          {dayCumpleanos.length > 0 ? (
-            <>
-              {dayCumpleanos.slice(0, 3).map(cumple => {
-                const color = cumple.sucursal?.color || getSucursalColor(0)
-                return (
-                  <div
-                    key={cumple.id}
-                    onClick={(e) => { e.stopPropagation(); onEditClick(cumple); }}
-                    className={cn(
-                      'cursor-pointer flex items-center gap-1.5 rounded-lg px-1.5 py-0.5 transition-all duration-150',
-                      today ? 'bg-white/95 shadow-sm hover:scale-[1.02]' : 'hover:scale-[1.02] hover:shadow-sm'
-                    )}
-                    style={today ? undefined : { backgroundColor: hexToRgba(color, 0.12) }}
-                  >
-                    <span
-                      className="w-3.5 h-3.5 rounded-full flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0"
-                      style={{ backgroundColor: color }}
-                    >
-                      {cumple.nombre.charAt(0).toUpperCase()}
-                    </span>
-                    <span
-                      className="text-[11px] font-medium truncate leading-tight"
-                      style={today ? { color: '#BE185D' } : { color }}
-                    >
-                      {cumple.nombre}
-                      {cumple.esHoy && ' 🎂'}
-                    </span>
-                  </div>
-                )
-              })}
-              {dayCumpleanos.length > 3 && (
-                <div className="text-center text-[11px] font-semibold text-primary-600 py-0.5">
-                  +{dayCumpleanos.length - 3} más
-                </div>
-              )}
-            </>
-          ) : null}
-        </div>
-
-        {/* Mini badge "+N" para móvil si hay más de 3 */}
-        {hasBirthdays && dayCumpleanos.length > dotLimit && (
-          <span className="absolute bottom-0.5 right-1 sm:hidden text-[7px] font-bold text-primary-500">
-            +{dayCumpleanos.length - dotLimit}
-          </span>
-        )}
       </div>
     )
   }
 
-  const renderWeek = (weekStart: Date) => {
-    const weekCumpleanos = getCumpleanosForWeek(weekStart)
-    return (
-      <div key={weekStart.toISOString()} className="flex gap-px sm:gap-1">
-        {Array.from({ length: 7 }).map((_, i) => {
-          const day = addDays(weekStart, i)
-          const isCurrentMonth = isSameMonth(day, currentMonth)
-          return (
-            <div key={i} className="flex-1 min-w-0">
-              {renderDay(day, isCurrentMonth)}
-            </div>
-          )
-        })}
-      </div>
-    )
-  }
-
-  const weeks = []
-  let weekStart = calendarStart
-  while (weekStart <= calendarEnd) {
-    weeks.push(weekStart)
-    weekStart = addDays(weekStart, 7)
-  }
+  const detailCumpleanos = selectedDay ? getCumpleanosForDay(selectedDay) : cumpleanosDelMes
 
   return (
     <div className="card overflow-hidden animate-in">
-      {/* Header del calendario */}
-      <div className="p-4 border-b border-neutral-100 bg-gradient-to-r from-primary-50 to-secondary-50">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setCurrentMonth(d => addDays(startOfMonth(d), -1))}
-              className="p-2 rounded-xl bg-white shadow-sm hover:shadow-md transition-shadow text-primary-600 hover:text-primary-700"
-              aria-label="Mes anterior"
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </button>
-            <div className="text-center min-w-0 sm:min-w-[200px] flex-1 sm:flex-none">
-              <h2 className="text-lg sm:text-xl font-display font-bold text-neutral-900 capitalize truncate">
-                {format(currentMonth, 'MMMM yyyy', { locale: es })}
-              </h2>
-              <p className="text-xs sm:text-sm text-neutral-500 truncate">
-                {filteredCumpleanos.filter(c => isSameMonth(new Date(c.fecha), currentMonth)).length} cumpleaños este mes
-              </p>
-            </div>
-            <button
-              onClick={() => setCurrentMonth(d => addDays(startOfMonth(d), 32))}
-              className="p-2 rounded-xl bg-white shadow-sm hover:shadow-md transition-shadow text-primary-600 hover:text-primary-700"
-              aria-label="Mes siguiente"
-            >
-              <ChevronRight className="w-5 h-5" />
-            </button>
+      {/* Header */}
+      <div className="p-3 sm:p-5 border-b border-neutral-100">
+        <div className="flex items-center justify-between gap-2">
+          <button
+            onClick={() => setCurrentMonth(d => addDays(startOfMonth(d), -1))}
+            className="p-2 rounded-xl hover:bg-white text-primary-500 transition-colors"
+            aria-label="Mes anterior"
+          >
+            <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" />
+          </button>
+
+          <div className="text-center flex-1 min-w-0">
+            <h2 className="text-base sm:text-2xl font-display font-bold text-neutral-900 capitalize truncate">
+              {format(currentMonth, 'MMMM yyyy', { locale: es })}
+            </h2>
+            <p className="text-[11px] sm:text-sm text-neutral-500 truncate">
+              {cumpleanosDelMes.length} cumpleaños este mes
+            </p>
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap justify-center sm:justify-end">
-            <div className="relative flex-1 sm:flex-none min-w-[140px]">
-              <Filter className="w-5 h-5 text-neutral-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <select
-                value={selectedSucursal || 'all'}
-                onChange={(e) => onSucursalChange(e.target.value || null)}
-                className="w-full pl-10 pr-8 py-2 rounded-xl border border-neutral-200 bg-white text-sm font-medium text-neutral-700 focus:border-primary-400 focus:ring-2 focus:ring-primary-100 appearance-none cursor-pointer"
-              >
-                <option value="all">Todas las sucursales</option>
-                {sucursales.map(s => (
-                  <option key={s.id} value={s.id} style={{ color: s.color }}>
-                    {s.nombre}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <button
-              onClick={() => onAddClick()}
-              className="btn-primary gap-2 flex-1 sm:flex-none justify-center"
+          <button
+            onClick={() => setCurrentMonth(d => addDays(startOfMonth(d), 32))}
+            className="p-2 rounded-xl hover:bg-white text-primary-500 transition-colors"
+            aria-label="Mes siguiente"
+          >
+            <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6" />
+          </button>
+        </div>
+
+        {/* Control de sucursal */}
+        <div className="flex items-center gap-2 mt-3 sm:mt-4">
+          <div className="relative flex-1">
+            <Filter className="w-4 h-4 text-neutral-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <select
+              value={selectedSucursal || 'all'}
+              onChange={(e) => onSucursalChange(e.target.value || null)}
+              className="w-full pl-9 pr-8 py-2 rounded-xl border border-neutral-200 bg-white text-sm font-medium text-neutral-700 focus:border-primary-400 focus:ring-2 focus:ring-primary-100 appearance-none cursor-pointer"
             >
-              <Plus className="w-4 h-4" />
-              Agregar
-            </button>
+              <option value="all">Todas las sucursales</option>
+              {sucursales.map(s => (
+                <option key={s.id} value={s.id} style={{ color: s.color }}>
+                  {s.nombre}
+                </option>
+              ))}
+            </select>
           </div>
+          <button
+            onClick={() => onAddClick()}
+            className="btn-primary gap-1.5 sm:gap-2 px-3 sm:px-4 whitespace-nowrap"
+          >
+            <Plus className="w-4 h-4" />
+            <span className="hidden sm:inline">Agregar</span>
+          </button>
         </div>
 
         {/* Días de la semana */}
-        <div className="grid grid-cols-7 gap-1 mt-3 sm:mt-4 text-center">
-          {['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'].map((day, i) => (
-            <div key={i} className="py-1.5 sm:py-2 px-0.5 sm:px-1 text-[10px] sm:text-xs font-bold text-primary-600 uppercase tracking-wider">
+        <div className="grid grid-cols-7 mt-3 sm:mt-5 text-center gap-1">
+          {DIAS.map((day, i) => (
+            <div key={i} className="text-[10px] sm:text-xs font-bold text-primary-500 uppercase tracking-wider">
               {day}
             </div>
           ))}
@@ -258,31 +185,72 @@ export function Calendar({
       </div>
 
       {/* Grid del calendario */}
-      <div className="p-1.5 sm:p-3">
-        <div className="grid grid-cols-7 gap-1 sm:gap-1.5">
-          {weeks.map((week, weekIndex) => (
-            <div key={weekIndex} className="contents">
-              {renderWeek(week)}
+      <div className="p-2 sm:p-6 sm:pt-4">
+        <div className="grid grid-cols-7 gap-y-1 sm:gap-y-3">
+          {weeks.map((week, wi) =>
+            week.map((day) => renderDay(day, isSameMonth(day, currentMonth)))
+          )}
+        </div>
+
+        {/* Lista de cumpleaños del día/mes */}
+        <div className="mt-4 sm:mt-6 border-t border-neutral-100 pt-3 sm:pt-4">
+          <div className="flex items-center justify-between mb-2 sm:mb-3">
+            <h3 className="text-sm sm:text-base font-bold text-neutral-800 flex items-center gap-1.5">
+              <Gift className="w-4 h-4 text-primary-500" />
+              {selectedDay ? `Cumpleaños del día ${format(selectedDay, 'd', { locale: es })}` : 'Cumpleaños del mes'}
+            </h3>
+            {selectedDay && (
+              <button onClick={() => setSelectedDay(null)} className="text-xs text-primary-500 hover:text-primary-700 font-medium">
+                Ver todo el mes
+              </button>
+            )}
+          </div>
+
+          {detailCumpleanos.length === 0 ? (
+            <div className="text-center py-6 text-neutral-400">
+              <Building2 className="w-8 h-8 sm:w-10 sm:h-10 mx-auto mb-2 text-neutral-200" />
+              <p className="text-sm">Sin cumpleaños {selectedDay ? 'este día' : 'este mes'}</p>
             </div>
-          ))}
+          ) : (
+            <div className="space-y-2 sm:space-y-2.5">
+              {detailCumpleanos.map(cumple => {
+                const color = cumple.sucursal?.color || getSucursalColor(0)
+                return (
+                  <div
+                    key={cumple.id}
+                    onClick={() => onEditClick(cumple)}
+                    className="flex items-center gap-3 p-2.5 sm:p-3 rounded-xl border border-neutral-100 hover:border-primary-200 hover:shadow-sm hover:bg-primary-50/30 transition-all cursor-pointer"
+                  >
+                    <span
+                      className="w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center text-sm sm:text-base font-bold text-white flex-shrink-0"
+                      style={{ backgroundColor: color }}
+                    >
+                      {cumple.nombre.charAt(0).toUpperCase()}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-neutral-900 text-sm sm:text-base truncate">
+                        {cumple.nombre}
+                        {cumple.esHoy && <span className="ml-1 text-[10px] align-middle">🎂 Hoy</span>}
+                      </p>
+                      <p className="text-xs sm:text-sm text-neutral-500 flex items-center gap-1.5">
+                        {format(new Date(cumple.fecha), 'd MMMM', { locale: es })}
+                        {cumple.sucursal && (
+                          <span className="inline-flex items-center gap-1" style={{ color: cumple.sucursal.color }}>
+                            · {cumple.sucursal.nombre}
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                    <span className="text-xs sm:text-sm font-semibold text-neutral-400">
+                      {cumple.edad} años
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          )}
         </div>
       </div>
-
-      {/* Leyenda */}
-      <div className="px-4 py-3 sm:py-4 border-t border-neutral-100 flex flex-wrap items-center justify-center gap-2 sm:gap-4 text-xs sm:text-sm text-neutral-600">
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded bg-primary-50"></div>
-            <span>Hoy</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded animate-pulse" style={{ backgroundColor: '#EC407A' }}></div>
-            <span>Cumpleaños hoy</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded border-2 border-dashed border-neutral-300"></div>
-            <span>Sin cumpleaños</span>
-          </div>
-        </div>
     </div>
   )
 }
