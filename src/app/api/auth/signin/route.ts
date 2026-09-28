@@ -40,7 +40,7 @@ export async function POST(req: Request) {
       status: 302,
       headers: {
         Location: '/',
-        'Set-Cookie': `auth-token=${btoa(JSON.stringify({ id: user.id, email: user.email, name: user.nombre }))}; path=/; httpOnly; SameSite=Strict`,
+        'Set-Cookie': `auth-token=${btoa(JSON.stringify({ id: user.id, email: user.email, name: user.nombre, role: user.role }))}; path=/; httpOnly; SameSite=Strict`,
       },
     })
   } catch (error: any) {

@@ -4,7 +4,9 @@
 export const dynamic = 'force-dynamic'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
+import { useAuth } from '@/lib/use-auth'
 import { Loader2, Building2, Gift, Calendar as CalendarIcon, Filter, Plus, Download, Settings, LogOut, ChevronDown, Sparkles, Trash2, Info } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -141,7 +143,9 @@ function CreateUserForm({ onCreated }: { onCreated: (u: { id: string; nombre: st
 }
 
 function Dashboard() {
-  const { data: session, status } = useSession()
+  const { user, status } = useAuth()
+  const session = user ? { user } : null
+  const router = useRouter()
   const [cumpleanos, setCumpleanos] = useState<CumpleanosConEdad[]>([])
   const [sucursales, setSucursales] = useState<Sucursal[]>([])
   const [selectedSucursal, setSelectedSucursal] = useState<string | null>(null)
@@ -153,6 +157,20 @@ function Dashboard() {
   const [viewMode, setViewMode] = useState<'calendar' | 'list' | 'cards'>('calendar')
   const [showUserManager, setShowUserManager] = useState(false)
   const [users, setUsers] = useState<{ id: string; nombre: string; email: string; role: string }[]>([])
+
+  // Redirigir si no hay sesión — decidir a /register (sin admin) o /login (ya existe)
+  useEffect(() => {
+    if (status !== 'unauthenticated') return
+    ;(async () => {
+      try {
+        const res = await fetch('/api/registration-status')
+        const data = await res.json()
+        router.replace(data.totalUsers === 0 ? '/register' : '/login')
+      } catch {
+        router.replace('/login')
+      }
+    })()
+  }, [status, router])
 
   // Cargar datos
   const fetchData = async () => {
@@ -273,6 +291,7 @@ function Dashboard() {
   }
 
   if (status === 'unauthenticated') {
+    // El useEffect superior redirige a /register o /login
     return null
   }
 
@@ -340,12 +359,20 @@ function Dashboard() {
                 )}
                 <div className="hidden sm:block text-right">
                   <p className="text-sm font-medium text-neutral-900">
-                    {(session?.user as any)?.nombre || session?.user?.email}
+                    {(session?.user as any)?.nombre || (session?.user as any)?.name || session?.user?.email}
                   </p>
                   <p className="text-xs text-neutral-500 capitalize">{(session?.user as any)?.role || 'admin'}</p>
                 </div>
-                <button className="p-2 rounded-xl bg-neutral-100 hover:bg-neutral-200 transition-colors text-neutral-600">
-                  <Settings className="w-5 h-5" />
+                <button
+                  onClick={() => {
+                    // Logout: borrar cookie auth-token y recargar a /login
+                    document.cookie = 'auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+                    window.location.href = '/login'
+                  }}
+                  className="p-2 rounded-xl bg-neutral-100 hover:bg-neutral-200 transition-colors text-neutral-600"
+                  title="Cerrar sesión"
+                >
+                  <LogOut className="w-5 h-5" />
                 </button>
               </div>
             </div>
