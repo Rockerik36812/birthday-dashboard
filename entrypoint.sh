@@ -18,4 +18,8 @@ su-exec nextjs node node_modules/prisma/build/index.js db push --schema prisma/s
 }
 echo "✅ Base de datos lista"
 
+# Reasegurar permisos: prisma db push puede recrear prod.db como 'node' (uid 1000),
+# y la app corre como 'nextjs' (uid 1001), lo que dejaba la BD en solo lectura (500).
+chown -R nextjs:nodejs /app/data
+
 exec su-exec nextjs node ./node_modules/next/dist/bin/next start 2>&1
