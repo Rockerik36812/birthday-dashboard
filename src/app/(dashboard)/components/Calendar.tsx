@@ -61,59 +61,62 @@ export function Calendar({
       <div
         key={date.toISOString()}
         className={cn(
-          'relative min-h-[72px] sm:min-h-[100px] p-1 sm:p-2 border border-neutral-100 bg-white',
-          !isCurrentMonth && 'bg-neutral-50/50 text-neutral-400',
-          today && 'bg-primary-50 border-primary-200 shadow-inner',
-          'transition-all duration-200 hover:bg-primary-50/30'
+          'relative min-h-[72px] sm:min-h-[110px] p-1 sm:p-2 rounded-lg sm:rounded-xl border transition-all duration-200',
+          today
+            ? 'bg-gradient-to-br from-primary-500 to-secondary-500 border-transparent text-white shadow-lg shadow-primary-200/50'
+            : 'border-neutral-200/80 bg-white hover:border-primary-300 hover:shadow-md hover:-translate-y-px',
+          !isCurrentMonth && 'border-transparent bg-neutral-50/60 text-neutral-400 opacity-70'
         )}
       >
-        <div className={cn('flex justify-between items-start mb-1', today && 'text-primary-600 font-semibold')}>
-          <span className="text-xs sm:text-sm font-medium">{format(date, 'd', { locale: es })}</span>
-          {today && <span className="text-[10px] sm:text-xs badge-success">Hoy</span>}
+        <div className={cn('flex justify-between items-start mb-1', today ? 'text-white' : '')}>
+          <span className={cn(
+            'font-medium leading-none',
+            today ? 'text-white text-xs sm:text-sm font-bold bg-white/25 rounded-lg px-1.5 py-1' : 'text-neutral-700 text-xs sm:text-sm'
+          )}>
+            {format(date, 'd', { locale: es })}
+          </span>
+          {today && <span className="text-[8px] sm:text-[10px] badge-success">🎂 Hoy</span>}
         </div>
 
         {dayCumpleanos.length > 0 && (
-          <div className="space-y-0.5 sm:space-y-1 max-h-[48px] sm:max-h-[70px] overflow-y-auto pr-0.5 sm:pr-1">
-            {dayCumpleanos.slice(0, 3).map(cumple => (
-              <div
-                key={cumple.id}
-                onClick={(e) => { e.stopPropagation(); onEditClick(cumple); }}
-                className="cursor-pointer group"
-              >
+          <div className="space-y-1 sm:space-y-1.5 max-h-[44px] sm:max-h-[76px] overflow-y-auto pr-0.5">
+            {dayCumpleanos.slice(0, 3).map(cumple => {
+              const color = cumple.sucursal?.color || getSucursalColor(0)
+              return (
                 <div
+                  key={cumple.id}
+                  onClick={(e) => { e.stopPropagation(); onEditClick(cumple); }}
                   className={cn(
-                    'px-1 sm:px-2 py-0.5 sm:py-1 rounded text-[9px] sm:text-xs font-medium truncate transition-all duration-200',
-                    'group-hover:shadow-sm group-hover:scale-[1.02]'
+                    'cursor-pointer flex items-center gap-1 rounded-md sm:rounded-lg px-1 sm:px-1.5 py-1 transition-all duration-150',
+                    today ? 'bg-white/95 shadow-sm hover:scale-[1.03]' : 'bg-neutral-50 hover:scale-[1.02] hover:shadow-sm'
                   )}
-                  style={{
-                    backgroundColor: hexToRgba(cumple.sucursal?.color || getSucursalColor(0), 0.15),
-                    borderLeft: `2px solid ${cumple.sucursal?.color || getSucursalColor(0)}`,
-                    color: cumple.sucursal?.color || getSucursalColor(0),
-                  }}
+                  style={today ? undefined : { backgroundColor: hexToRgba(color, 0.12) }}
                 >
-                  {cumple.nombre}
-                  {cumple.esHoy && <span className="ml-1 animate-pulse">🎂</span>}
+                  <span
+                    className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full flex items-center justify-center text-[7px] sm:text-[9px] font-bold text-white flex-shrink-0"
+                    style={{ backgroundColor: color }}
+                  >
+                    {cumple.nombre.charAt(0).toUpperCase()}
+                  </span>
+                  <span
+                    className="text-[8px] sm:text-[11px] font-medium truncate"
+                    style={today ? { color: '#BE185D' } : { color }}
+                  >
+                    {cumple.nombre}
+                    {cumple.esHoy && ' 🎂'}
+                  </span>
                 </div>
-              </div>
-            ))}
+              )
+            })}
             {dayCumpleanos.length > 3 && (
               <div
                 onClick={(e) => { e.stopPropagation(); onAddClick(date); }}
-                className="text-[9px] sm:text-xs text-center text-neutral-500 hover:text-primary-600 cursor-pointer px-1 py-0.5 sm:py-1 rounded-lg hover:bg-primary-50"
+                className="text-center text-neutral-500 hover:text-primary-600 cursor-pointer py-0.5 rounded hover:bg-primary-50 text-[9px] sm:text-xs font-semibold"
               >
-                +{dayCumpleanos.length - 3}
+                +{dayCumpleanos.length - 3} más
               </div>
             )}
           </div>
-        )}
-
-        {!dayCumpleanos.length && isCurrentMonth && (
-          <button
-            onClick={(e) => { e.stopPropagation(); onAddClick(date); }}
-            className="w-full h-6 sm:h-8 border-2 border-dashed border-neutral-200 rounded-lg text-neutral-300 hover:border-primary-300 hover:text-primary-500 hover:bg-primary-50 transition-all text-[10px] sm:text-xs font-medium"
-          >
-            +
-          </button>
         )}
       </div>
     )
@@ -200,9 +203,9 @@ export function Calendar({
         </div>
 
         {/* Días de la semana */}
-        <div className="grid grid-cols-7 gap-px sm:gap-1 mt-3 sm:mt-4 text-center">
+        <div className="grid grid-cols-7 gap-1 mt-3 sm:mt-4 text-center">
           {['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'].map((day, i) => (
-            <div key={i} className="py-1.5 sm:py-2 px-0.5 sm:px-1 text-[10px] sm:text-xs font-semibold text-neutral-500 uppercase tracking-wide">
+            <div key={i} className="py-1.5 sm:py-2 px-0.5 sm:px-1 text-[10px] sm:text-xs font-bold text-primary-600 uppercase tracking-wider">
               {day}
             </div>
           ))}
@@ -210,8 +213,8 @@ export function Calendar({
       </div>
 
       {/* Grid del calendario */}
-      <div className="p-1 sm:p-2">
-        <div className="grid grid-cols-7 gap-px sm:gap-1">
+      <div className="p-1.5 sm:p-3">
+        <div className="grid grid-cols-7 gap-1 sm:gap-1.5">
           {weeks.map((week, weekIndex) => (
             <div key={weekIndex} className="contents">
               {renderWeek(week)}
