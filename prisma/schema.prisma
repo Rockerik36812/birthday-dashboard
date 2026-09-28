@@ -42,7 +42,7 @@ model User {
   email         String    @unique
   nombre        String?
   passwordHash  String?   // Para magic link no es obligatorio, pero por si acaso
-  rol           String    @default("admin") // admin, editor
+  role          String    @default("admin") // admin, editor
   emailVerified DateTime?
   image         String?
   createdAt     DateTime  @default(now())

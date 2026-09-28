@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Loader2, User, Mail, Lock, CheckCircle, AlertCircle, Gift } from 'lucide-react'
+import { Loader2, User, Mail, Lock, CheckCircle, AlertCircle, Gift, Info, Shield } from 'lucide-react'
 import { cn } from '@/lib/cn'
 
 export default function RegisterPage() {
@@ -13,6 +13,15 @@ export default function RegisterPage() {
   const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [registrationClosed, setRegistrationClosed] = useState(false)
+
+  useEffect(() => {
+    fetch('/api/registration-status').then(r => r.json()).then(data => {
+      if (data.registrationClosed) {
+        setRegistrationClosed(true)
+      }
+    })
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -37,7 +46,7 @@ export default function RegisterPage() {
         return
       }
 
-      setMessage({ type: 'success', text: '¡Cuenta creada! Redirigiendo al login...' })
+      setMessage({ type: 'success', text: '¡Cuenta de administrador creada! Redirigiendo...' })
       
       setTimeout(() => {
         router.push('/login')
@@ -47,6 +56,39 @@ export default function RegisterPage() {
     } finally {
       setIsLoading(false)
     }
+  }
+
+  if (registrationClosed) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-secondary-50 flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
+          <div className="text-center mb-8 animate-in">
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl gradient-primary mx-auto mb-4 shadow-soft">
+              <Shield className="w-10 h-10 text-white" />
+            </div>
+            <h1 className="font-display font-bold text-3xl text-neutral-900 mb-2">Birthday Dashboard</h1>
+            <p className="text-neutral-600">Registro cerrado</p>
+          </div>
+
+          <div className="card p-6 sm:p-8 animate-in border-yellow-200 bg-yellow-50">
+            <div className="mb-6 p-4 rounded-xl flex items-center gap-3 text-sm bg-yellow-100 border border-yellow-200 text-yellow-800">
+              <Info className="w-5 h-5 flex-shrink-0" />
+              <p>El registro por internet está deshabilitado.</p>
+            </div>
+
+            <p className="text-neutral-600 mb-4">
+              Las cuentas se crean manualmente por el administrador del sistema.
+            </p>
+
+            <div className="mt-6 text-center">
+              <a href="/login" className="btn-primary inline-block">
+                Ir al Login
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
