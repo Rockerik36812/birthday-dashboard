@@ -57,3 +57,7 @@ logs
 
 # Docker
 docker-compose.override.yml
+# Bases de datos locales (no versionar)
+*.db
+*.db-journal
+!/prisma/schema.prisma
