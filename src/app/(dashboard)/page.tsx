@@ -300,18 +300,18 @@ function Dashboard() {
       {/* Header */}
       <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-sm border-b border-neutral-100 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 h-16">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-xl gradient-primary">
-                <Gift className="w-6 h-6 text-white" />
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 py-2 sm:h-16">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="p-2 rounded-xl gradient-primary flex-shrink-0">
+                <Gift className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </div>
-              <div>
-                <h1 className="font-display font-bold text-xl text-neutral-900">Birthday Dashboard</h1>
-                <p className="text-xs text-neutral-500">Panel de Cumpleaños del Equipo</p>
+              <div className="min-w-0">
+                <h1 className="font-display font-bold text-lg sm:text-xl text-neutral-900 truncate">Birthday Dashboard</h1>
+                <p className="text-[11px] sm:text-xs text-neutral-500 truncate">Panel de Cumpleaños del Equipo</p>
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-3 w-full sm:w-auto">
               {/* Stats rápidos */}
               <div className="hidden sm:flex items-center gap-4 text-sm">
                 <div className="flex items-center gap-1.5 text-success-600">
@@ -331,24 +331,24 @@ function Dashboard() {
                     key={mode}
                     onClick={() => setViewMode(mode)}
                     className={cn(
-                      'p-2 rounded-lg transition-all duration-200 text-neutral-500 hover:text-neutral-700',
+                      'p-1.5 sm:p-2 rounded-lg transition-all duration-200 text-neutral-500 hover:text-neutral-700',
                       viewMode === mode && 'bg-white text-primary-600 shadow-sm'
                     )}
                     aria-label={mode}
                   >
-                    {mode === 'calendar' && <CalendarIcon className="w-5 h-5" />}
-                    {mode === 'list' && <Filter className="w-5 h-5" />}
-                    {mode === 'cards' && <Building2 className="w-5 h-5" />}
+                    {mode === 'calendar' && <CalendarIcon className="w-4 h-4 sm:w-5 sm:h-5" />}
+                    {mode === 'list' && <Filter className="w-4 h-4 sm:w-5 sm:h-5" />}
+                    {mode === 'cards' && <Building2 className="w-4 h-4 sm:w-5 sm:h-5" />}
                   </button>
                 ))}
               </div>
 
               {/* Usuario */}
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
                 {(session?.user as any)?.role === 'admin' && (
                   <button 
                     onClick={() => setShowUserManager(!showUserManager)}
-                    className={`px-3 py-2 rounded-xl text-sm font-medium transition-colors ${
+                    className={`px-2 sm:px-3 py-2 rounded-xl text-xs sm:text-sm font-medium transition-colors ${
                       showUserManager 
                         ? 'bg-primary-100 text-primary-700' 
                         : 'bg-neutral-100 hover:bg-neutral-200 text-neutral-600'
@@ -372,7 +372,7 @@ function Dashboard() {
                   className="p-2 rounded-xl bg-neutral-100 hover:bg-neutral-200 transition-colors text-neutral-600"
                   title="Cerrar sesión"
                 >
-                  <LogOut className="w-5 h-5" />
+                  <LogOut className="w-4 h-4 sm:w-5 sm:h-5" />
                 </button>
               </div>
             </div>
@@ -435,16 +435,16 @@ function Dashboard() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Filtro de sucursal + stats */}
-        <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="flex flex-wrap items-center gap-3">
+        <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 min-w-0">
             <label className="flex items-center gap-2 text-sm font-medium text-neutral-700">
-              <Building2 className="w-4 h-4 text-primary-500" />
+              <Building2 className="w-4 h-4 text-primary-500 flex-shrink-0" />
               Filtrar por:
             </label>
             <select
               value={selectedSucursal || 'all'}
               onChange={(e) => setSelectedSucursal(e.target.value || null)}
-              className="px-4 py-2 rounded-xl border border-neutral-200 bg-white text-sm font-medium text-neutral-700 focus:border-primary-400 focus:ring-2 focus:ring-primary-100 appearance-none cursor-pointer min-w-[200px]"
+              className="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm font-medium text-neutral-700 focus:border-primary-400 focus:ring-2 focus:ring-primary-100 appearance-none cursor-pointer sm:min-w-[200px]"
             >
               <option value="all">🏢 Todas las sucursales ({cumpleanos.length})</option>
               {sucursales.map(s => (
@@ -455,14 +455,14 @@ function Dashboard() {
             </select>
           </div>
 
-          <div className="flex items-center gap-2">
-            <button onClick={handleShareGroup} className="btn-whatsapp gap-2" disabled={cumpleMes.length === 0}>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <button onClick={handleShareGroup} className="btn-whatsapp gap-2 flex-1 sm:flex-none justify-center" disabled={cumpleMes.length === 0}>
               <Gift className="w-4 h-4" />
-              <span>Compartir Mes ({cumpleMes.length})</span>
+              <span className="flex-1 sm:flex-none text-center">Compartir Mes ({cumpleMes.length})</span>
             </button>
-            <button onClick={() => { setEditingCumple(null); setIsModalOpen(true); }} className="btn-primary gap-2">
+            <button onClick={() => { setEditingCumple(null); setIsModalOpen(true); }} className="btn-primary gap-2 flex-1 sm:flex-none justify-center">
               <Plus className="w-4 h-4" />
-              <span>Nuevo</span>
+              <span className="flex-1 sm:flex-none text-center">Nuevo</span>
             </button>
           </div>
         </div>
