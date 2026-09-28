@@ -1,0 +1,93 @@
+// Prisma Schema for Birthday Dashboard
+// Run: npx prisma db push
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Sucursal {
+  id        String       @id @default(cuid())
+  nombre    String       @unique
+  color     String       @default("#EC407A") // Hex color for UI
+  orden     Int          @default(0)        // Para ordenar en UI
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  cumpleanos Cumpleanos[]
+
+  @@map("sucursales")
+}
+
+model Cumpleanos {
+  id          String   @id @default(cuid())
+  nombre      String
+  fecha       DateTime // Almacena fecha completa (año real para calcular edad)
+  mensaje     String   // @db.Text removed - not supported in SQLite
+  sucursalId  String
+  sucursal    Sucursal @relation(fields: [sucursalId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([fecha])
+  @@index([sucursalId])
+  @@map("cumpleanos")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  nombre        String?
+  passwordHash  String?   // Para magic link no es obligatorio, pero por si acaso
+  rol           String    @default("admin") // admin, editor
+  emailVerified DateTime?
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  sessions      Session[]
+  accounts      Account[]
+
+  @@map("users")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? // @db.Text removed
+  access_token      String? // @db.Text removed
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? // @db.Text removed
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
