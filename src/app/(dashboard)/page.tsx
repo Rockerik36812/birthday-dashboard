@@ -651,7 +651,7 @@ function Dashboard() {
 
       {/* Pie de página */}
       <footer className="flex-none py-6 text-center mt-auto">
-        <p className="text-xs text-neutral-500">By Erik Cano</p>
+        <p className="text-xs text-neutral-500">© {new Date().getFullYear()} By Erik Cano</p>
       </footer>
     </div>
   )

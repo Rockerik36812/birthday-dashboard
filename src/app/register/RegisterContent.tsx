@@ -205,7 +205,7 @@ export default function RegisterPage() {
 
       {/* Pie de página */}
       <footer className="flex-none py-4 text-center">
-        <p className="text-xs text-neutral-500">By Erik Cano</p>
+        <p className="text-xs text-neutral-500">© {new Date().getFullYear()} By Erik Cano</p>
       </footer>
     </div>
   )
