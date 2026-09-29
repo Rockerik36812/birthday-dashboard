@@ -12,6 +12,9 @@ export interface Cumpleanos {
   nombre: string
   fecha: Date
   mensaje: string
+  emoji?: string | null
+  foto?: string | null
+  avisoDias?: number
   sucursalId: string
   sucursal?: Sucursal
   createdAt: Date

@@ -2,6 +2,21 @@ import { format, formatDistanceToNow, isToday, isTomorrow, isYesterday, startOfD
 import { es } from 'date-fns/locale'
 import { cn } from './cn'
 
+/**
+ * Interruptor de características premium. Cada despliegue (producción vs
+ * Bamayacc) define su propio valor vía NEXT_PUBLIC_PREMIUM_FEATURES, que Next
+ * incrusta en el build. Si no está (como en Bamayacc) → false (comportamiento
+ * actual, sin cambios).
+ */
+export function isPremiumFeatures(): boolean {
+  try {
+    const v = process.env.NEXT_PUBLIC_PREMIUM_FEATURES || process.env.PREMIUM_FEATURES || ''
+    return v.toLowerCase() === 'true'
+  } catch {
+    return false
+  }
+}
+
 export { cn }
 export { format, formatDistanceToNow, isToday, isTomorrow, isYesterday, startOfDay, endOfDay, es }
 

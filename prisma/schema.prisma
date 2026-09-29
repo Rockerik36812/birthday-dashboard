@@ -27,6 +27,10 @@ model Cumpleanos {
   nombre      String
   fecha       DateTime // Almacena fecha completa (año real para calcular edad)
   mensaje     String   // @db.Text removed - not supported in SQLite
+  // --- NUEVO (PREMIUM_FEATURES): personalización de tarjeta + anticipación ---
+  emoji       String?  // emoji/tema personalizado para la tarjeta
+  foto        String?  // URL de foto del cumpleañero (se muestra redonda en la tarjeta)
+  avisoDias   Int      @default(1) // cuántos días antes avisar (0=hoy, 1=mañana, N=antes)
   sucursalId  String
   sucursal    Sucursal @relation(fields: [sucursalId], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now())

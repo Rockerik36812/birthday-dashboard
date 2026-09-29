@@ -24,7 +24,7 @@ export async function PUT(
 
     const { id } = await params
     const body = await request.json()
-    const { nombre, fecha, sucursalId, mensaje } = body
+    const { nombre, fecha, sucursalId, mensaje, emoji, foto, avisoDias } = body
 
     if (!nombre || !fecha || !sucursalId || !mensaje) {
       return NextResponse.json({ error: 'Todos los campos son obligatorios' }, { status: 400 })
@@ -37,6 +37,10 @@ export async function PUT(
         fecha: parseBirthdayLocal(fecha),
         sucursalId,
         mensaje,
+        // En PUT, emoji/foto se envían tal cual ("" borra el valor, null lo deja igual)
+        emoji: typeof emoji === 'string' ? (emoji || null) : undefined,
+        foto: typeof foto === 'string' ? (foto || null) : undefined,
+        avisoDias: typeof avisoDias === 'number' ? Math.max(0, Math.floor(avisoDias)) : undefined,
       },
       include: { sucursal: true },
     })

@@ -780,6 +780,9 @@ function Dashboard() {
           fecha: format(parseBirthdayLocal(editingCumple.fecha), 'yyyy-MM-dd'),
           sucursalId: editingCumple.sucursalId,
           mensaje: editingCumple.mensaje,
+          emoji: editingCumple.emoji || '',
+          foto: editingCumple.foto || '',
+          avisoDias: editingCumple.avisoDias ?? 1,
         } : null}
         isLoading={isSubmitting}
       />

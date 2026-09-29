@@ -9,7 +9,8 @@ import { cn } from '@/lib/utils'
 import { getSucursalColor, hexToRgba } from '@/lib/colors'
 import { format, parseBirthdayLocal, getAgeInYear } from '@/lib/utils'
 import { es } from 'date-fns/locale'
-import { Gift, MapPin, MessageSquare, Heart, Sparkles, Calendar } from 'lucide-react'
+import { Gift, MapPin, MessageSquare, Heart, Sparkles, Calendar, Image as ImageIcon } from 'lucide-react'
+import { isPremiumFeatures } from '@/lib/utils'
 
 interface WhatsAppShareProps {
   cumple?: CumpleanosConEdad | null
@@ -27,6 +28,9 @@ export function WhatsAppShare({ cumple, cumpleList, mode, month, onClose }: What
   const [shareMethod, setShareMethod] = useState<'whatsapp' | 'descarga' | null>(null)
   const cardRef = useRef<HTMLDivElement>(null)
   const captureRef = useRef<HTMLDivElement>(null)
+  const premium = isPremiumFeatures()
+  // Emoji personalizado o el regalo por defecto
+  const themeEmoji = (premium && cumple?.emoji) ? cumple.emoji : null
   // Mes mostrado (para modo grupal)
   const refMonth = month ?? new Date()
 
@@ -180,9 +184,20 @@ export function WhatsAppShare({ cumple, cumpleList, mode, month, onClose }: What
           <div className="relative z-10 text-center">
             {/* Header festivo */}
             <div className="mb-6">
-              <div className="inline-flex items-center justify-center w-20 h-20 rounded-full mb-4" style={{ backgroundColor: hexToRgba(sucursalColor, 0.15) }}>
-                <Gift className="w-10 h-10" style={{ color: sucursalColor }} />
-              </div>
+              {premium && cumple.foto ? (
+                <div className="w-24 h-24 rounded-full mb-4 overflow-hidden border-4 shadow-lg mx-auto" style={{ borderColor: sucursalColor }}>
+                  <img
+                    src={cumple.foto}
+                    alt=""
+                    className="w-full h-full object-cover"
+                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                  />
+                </div>
+              ) : (
+                <div className="inline-flex items-center justify-center w-20 h-20 rounded-full mb-4" style={{ backgroundColor: hexToRgba(sucursalColor, 0.15) }}>
+                  <span className="text-4xl">{themeEmoji || '🎁'}</span>
+                </div>
+              )}
               {esHoy && (
                 <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-3 animate-pulse" style={{ backgroundColor: hexToRgba(sucursalColor, 0.2), color: sucursalColor }}>
                   <Heart className="w-5 h-5" />

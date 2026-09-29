@@ -4,8 +4,8 @@ import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { X, Calendar, MapPin, MessageSquare, Building2, Gift, Loader2 } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { X, Calendar, MapPin, MessageSquare, Building2, Gift, Loader2, Image, Bell, Smile } from 'lucide-react'
+import { cn, isPremiumFeatures } from '@/lib/utils'
 import { Sucursal } from '@/types'
 
 const birthdaySchema = z.object({
@@ -13,6 +13,9 @@ const birthdaySchema = z.object({
   fecha: z.string().min(1, 'La fecha es obligatoria'),
   sucursalId: z.string().min(1, 'Selecciona una sucursal'),
   mensaje: z.string().min(10, 'El mensaje debe tener al menos 10 caracteres').max(500),
+  emoji: z.string().max(20).optional(),
+  foto: z.string().max(500).optional(),
+  avisoDias: z.coerce.number().min(0).max(30).optional(),
 })
 
 type BirthdayFormData = z.infer<typeof birthdaySchema>
@@ -27,6 +30,9 @@ interface BirthdayModalProps {
     fecha: string
     sucursalId: string
     mensaje: string
+    emoji?: string
+    foto?: string
+    avisoDias?: number
   } | null
   isLoading?: boolean
 }
@@ -52,8 +58,13 @@ export function BirthdayModal({
       fecha: '',
       sucursalId: '',
       mensaje: '',
+      emoji: '',
+      foto: '',
+      avisoDias: 1,
     },
   })
+
+  const premium = isPremiumFeatures()
 
   useEffect(() => {
     if (isOpen && initialData) {
@@ -62,6 +73,9 @@ export function BirthdayModal({
         fecha: initialData.fecha,
         sucursalId: initialData.sucursalId,
         mensaje: initialData.mensaje,
+        emoji: initialData.emoji || '',
+        foto: initialData.foto || '',
+        avisoDias: initialData.avisoDias ?? 1,
       })
     } else if (isOpen && !initialData) {
       reset({
@@ -69,6 +83,9 @@ export function BirthdayModal({
         fecha: new Date().toISOString().split('T')[0],
         sucursalId: sucursales[0]?.id || '',
         mensaje: '',
+        emoji: '',
+        foto: '',
+        avisoDias: 1,
       })
     }
   }, [isOpen, initialData, reset, sucursales])
@@ -191,6 +208,75 @@ export function BirthdayModal({
               Este mensaje aparecerá en la tarjeta de WhatsApp
             </p>
           </div>
+
+          {/* ==== SÓLO si está PREMIUM_FEATURES: personalización de tarjeta ==== */}
+          {premium && (
+            <>
+              <div className="pt-1 pb-0.5 border-b border-neutral-100">
+                <p className="text-xs text-neutral-400 uppercase tracking-wide">✨ Personalización de la tarjeta</p>
+              </div>
+
+              {/* Emoji / tema */}
+              <div>
+                <label htmlFor="emoji" className="label flex items-center gap-1.5">
+                  <Smile className="w-4 h-4 text-primary-500" />
+                  Emoji / tema
+                </label>
+                <input
+                  {...register('emoji')}
+                  id="emoji"
+                  type="text"
+                  maxLength={20}
+                  placeholder="Ej: 🎂 🎉 🌸 ⚡ (déjalo vacío para el regalo 🎁)"
+                  className={cn('input')}
+                  autoComplete="off"
+                />
+                <p className="mt-1 text-xs text-neutral-500">Aparece como el símbolo principal de la tarjeta</p>
+              </div>
+
+              {/* Foto */}
+              <div>
+                <label htmlFor="foto" className="label flex items-center gap-1.5">
+                  <Image className="w-4 h-4 text-primary-500" />
+                  Foto (URL opcional)
+                </label>
+                <input
+                  {...register('foto')}
+                  id="foto"
+                  type="url"
+                  maxLength={500}
+                  placeholder="https://... (déjalo vacío si no hay foto)"
+                  className={cn('input')}
+                  autoComplete="off"
+                />
+                <p className="mt-1 text-xs text-neutral-500">
+                  Si agregas una URL de imagen, se muestra redonda en la tarjeta
+                </p>
+              </div>
+
+              {/* Anticipación del recordatorio */}
+              <div>
+                <label htmlFor="avisoDias" className="label flex items-center gap-1.5">
+                  <Bell className="w-4 h-4 text-primary-500" />
+                  Avisar con anticipación
+                </label>
+                <select
+                  {...register('avisoDias')}
+                  id="avisoDias"
+                  className={cn('input appearance-none')}
+                >
+                  <option value="0">El mismo día</option>
+                  <option value="1">1 día antes</option>
+                  <option value="2">2 días antes</option>
+                  <option value="3">3 días antes</option>
+                  <option value="7">1 semana antes</option>
+                </select>
+                <p className="mt-1 text-xs text-neutral-500">
+                  Recibes la notificación push con esta anticipación
+                </p>
+              </div>
+            </>
+          )}
 
           {/* Botones */}
           <div className="flex gap-3 pt-2">

@@ -1,12 +1,15 @@
 import { prisma } from '@/lib/prisma'
 import webpush from 'web-push'
+import { isPremiumFeatures } from '@/lib/utils'
 
 /**
  * Lógica de recordatorios de cumpleaños.
  *
  * Dos niveles:
+ *  - "hoy":    alerta fuerte el mero día (9:00 AM y 12:00 PM)
  *  - "mañana": aviso un día antes (9:00 AM y 12:00 PM)
- *  - "hoy":   alerta más fuerte el mero día (9:00 AM y 12:00 PM)
+ *  - "upcoming": (si está PREMIUM_FEATURES) aviso con anticipación
+ *    configurable por cumpleaño (campo avisoDias: cuántos días antes avisar).
  *
  * Se dispara desde el endpoint /api/reminders cuando un cron llama con el
  * secreto correcto. Compara por mes+día (ignorando el año, porque los
@@ -16,8 +19,10 @@ import webpush from 'web-push'
 export interface ReminderSummary {
   sentToday: number
   sentTomorrow: number
+  sentUpcoming: number
   birthdaysToday: string[]
   birthdaysTomorrow: string[]
+  birthdaysUpcoming: { nombre: string; dias: number }[]
   subscribers: number
 }
 
@@ -48,11 +53,12 @@ function getVAPIDKeys() {
 
 /**
  * Envía una notificación Web Push a todas las suscripciones registradas.
- * `kind` controla el mensaje (día antes = aviso; hoy = alerta fuerte).
+ * `kind` controla el mensaje (upcoming = con días de anticipación).
  */
 export async function sendPushNotifications(
-  kind: 'today' | 'tomorrow',
-  nombres: string[]
+  kind: 'today' | 'tomorrow' | 'upcoming',
+  nombres: string[],
+  dias: number | null = null
 ): Promise<{ ok: number; fail: number }> {
   const keys = getVAPIDKeys()
   if (nombres.length === 0) return { ok: 0, fail: 0 }
@@ -62,7 +68,7 @@ export async function sendPushNotifications(
 
   let ok = 0
   let fail = 0
-  const payload = JSON.stringify({ kind, nombres })
+  const payload = JSON.stringify({ kind, nombres, dias })
 
   for (const sub of subs) {
     try {
@@ -103,17 +109,19 @@ export async function sendPushNotifications(
 }
 
 /**
- * Calcula los cumpleaños de hoy, de mañana (y opcionalmente los de ayer como
- * referencia) comparando mes+día. Devuelve los nombres.
+ * Calcula los cumpleaños de hoy, de mañana y (si PREMIUM_FEATURES) los que caen
+ * dentro de la anticipación configurable (`avisoDias` días antes). Devuelve
+ * nombres.
  */
 export async function computeReminders(): Promise<ReminderSummary> {
   const now = new Date()
   const todayMd = getMD(now)
   const tomorrowMd = getMD(addDays(now, 1))
+  const premium = isPremiumFeatures()
 
   const all = await prisma.cumpleanos.findMany({
     where: { nombre: { not: '' } },
-    select: { nombre: true, fecha: true, sucursal: { select: { nombre: true } } },
+    select: { nombre: true, fecha: true, avisoDias: true, sucursal: { select: { nombre: true } } },
     orderBy: { nombre: 'asc' },
   })
 
@@ -124,19 +132,38 @@ export async function computeReminders(): Promise<ReminderSummary> {
     .filter((c) => getMD(c.fecha) === tomorrowMd)
     .map((c) => c.nombre)
 
+  // Anticipación configurable (solo en premium): agrupa por días restantes.
+  // avisoDias=1 equivale a mañana (ya cubierto arriba); >1 es aviso temprano.
+  let birthdaysUpcoming: { nombre: string; dias: number }[] = []
+  if (premium) {
+    // Para cada cumpleaños con avisoDias>1, avisa cuando estemos exactamente
+    // a esa distancia (N días antes).
+    for (const c of all) {
+      const dias = Math.max(0, c.avisoDias ?? 1)
+      if (dias <= 1) continue
+      if (birthdaysToday.includes(c.nombre) || birthdaysTomorrow.includes(c.nombre)) continue
+      const targetMd = getMD(addDays(c.fecha, -dias))
+      if (targetMd === todayMd) {
+        birthdaysUpcoming.push({ nombre: c.nombre, dias })
+      }
+    }
+  }
+
   const subscribers = await prisma.pushSubscription.count()
 
   return {
     sentToday: 0,
     sentTomorrow: 0,
+    sentUpcoming: 0,
     birthdaysToday,
     birthdaysTomorrow,
+    birthdaysUpcoming,
     subscribers,
   }
 }
 
 /**
- * Main entry: computed fechas y envía push. Devuelve resumen.
+ * Main entry: computa fechas y envía push. Devuelve resumen.
  */
 export async function runReminders(): Promise<ReminderSummary> {
   const summary = await computeReminders()
@@ -148,6 +175,10 @@ export async function runReminders(): Promise<ReminderSummary> {
   if (summary.birthdaysTomorrow.length > 0) {
     const res = await sendPushNotifications('tomorrow', summary.birthdaysTomorrow)
     summary.sentTomorrow = res.ok
+  }
+  if (summary.birthdaysUpcoming.length > 0) {
+    const res = await sendPushNotifications('upcoming', summary.birthdaysUpcoming.map((b) => b.nombre), summary.birthdaysUpcoming[0].dias)
+    summary.sentUpcoming = res.ok
   }
 
   return summary

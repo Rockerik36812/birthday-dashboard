@@ -43,13 +43,18 @@ function parsePayload(data) {
 self.addEventListener('push', (event) => {
   const data = parsePayload(event.data)
   const esHoy = data.kind === 'today'
+  const esUpcoming = data.kind === 'upcoming'
   const nombres = Array.isArray(data.nombres) ? data.nombres : []
   const lista = nombres.join(', ')
+  const dias = parseInt((data.dias ?? '').toString(), 10)
 
   let title, body
   if (esHoy) {
     title = nombres.length > 1 ? `🎂 ¡Hoy cumplen ${nombres.length}! 🎉` : `🎂 ¡Hoy cumple ${lista}! 🎉`
     body = 'Es su gran día. ¡Felicítalo! 💐'
+  } else if (esUpcoming && dias > 1) {
+    title = nombres.length > 1 ? `⏰ En ${dias} días cumplen ${nombres.length}` : `⏰ En ${dias} días cumple ${lista}`
+    body = '¡No lo dejes pasar! Prepara tu felicitación. 🎁'
   } else {
     title = nombres.length > 1 ? `🔔 Mañana cumplen ${nombres.length} 🎁` : `🔔 Mañana cumple ${lista} 🎁`
     body = 'Prepárate para felicitarlo. 🎉'
