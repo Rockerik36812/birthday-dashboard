@@ -67,7 +67,15 @@ export function PushBell() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             endpoint: sub.endpoint,
-            keys: { p256dh: sub.getKey('p256dh'), auth: sub.getKey('auth') },
+            keys: {
+              // getKey devuelve ArrayBuffer en formato "raw" por defecto;
+              // aquí lo pedimos en base64url (cadena) para que el servidor
+              // las guarde bien en la BD (Prisma pierde los ArrayBuffer).
+              // El navegador soporta getKey(nombre, formato) aunque el tipo
+              // de TS no lo refleje; se castea a la firma ampliada.
+              p256dh: ((sub.getKey as unknown) as (n: string, f: 'base64url') => string)('p256dh', 'base64url'),
+              auth: ((sub.getKey as unknown) as (n: string, f: 'base64url') => string)('auth', 'base64url'),
+            },
             userAgent: navigator.userAgent,
             label: 'Dashboard web',
           }),
