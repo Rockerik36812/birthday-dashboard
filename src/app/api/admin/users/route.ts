@@ -117,9 +117,12 @@ export async function PATCH(request: NextRequest) {
 
     const body = await request.json()
 
-    const parsed = z.object({
+    const base = z.object({
       id: z.string().min(1, 'Falta el id del usuario'),
-      password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
+    })
+    const parsed = base.extend({
+      password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres').optional(),
+      role: z.enum(['admin', 'editor']).optional(),
     }).safeParse(body)
 
     if (!parsed.success) {
@@ -129,24 +132,38 @@ export async function PATCH(request: NextRequest) {
       )
     }
 
+    const { id, password, role } = parsed.data
+    if (!password && !role) {
+      return NextResponse.json(
+        { error: 'Debes enviar una contraseña y/o un rol nuevo' },
+        { status: 400 }
+      )
+    }
+
     const user = await prisma.user.findUnique({
-      where: { id: parsed.data.id },
+      where: { id },
     })
 
     if (!user) {
       return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 })
     }
 
-    const hashedPassword = await bcrypt.hash(parsed.data.password, 12)
+    const data: { passwordHash?: string; role?: string } = {}
+    if (password) data.passwordHash = await bcrypt.hash(password, 12)
+    if (role) data.role = role
 
     await prisma.user.update({
       where: { id: user.id },
-      data: { passwordHash: hashedPassword },
+      data,
     })
 
-    return NextResponse.json({ success: true, message: `Contraseña de "${user.nombre || user.email}" actualizada` })
+    const cambios: string[] = []
+    if (password) cambios.push('contraseña')
+    if (role) cambios.push(`rol → ${role === 'admin' ? '👑 Admin' : '📝 Editor'}`)
+
+    return NextResponse.json({ success: true, message: `"${user.nombre || user.email}" actualizado (${cambios.join(', ')})` })
   } catch (error: any) {
-    console.error('Error al cambiar contraseña:', error)
+    console.error('Error al actualizar usuario:', error)
     return NextResponse.json(
       { error: 'Error interno del servidor' },
       { status: 500 }

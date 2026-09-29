@@ -457,6 +457,33 @@ function Dashboard() {
                       >
                         🔑 Cambiar contraseña
                       </button>
+                      <button
+                        onClick={async () => {
+                          const nuevoRol = user.role === 'admin' ? 'editor' : 'admin'
+                          const labelNuevo = nuevoRol === 'admin' ? '👑 Admin' : '📝 Editor'
+                          if (!confirm(`¿Cambiar el rol de ${user.nombre || user.email} a ${labelNuevo}?`)) return
+                          try {
+                            const res = await fetch('/api/admin/users', {
+                              method: 'PATCH',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ id: user.id, role: nuevoRol }),
+                            })
+                            const data = await res.json()
+                            if (!res.ok) {
+                              alert(data.error || 'Error al cambiar el rol')
+                            } else {
+                              alert(`✅ ${data.message}`)
+                              setUsers(prev => prev.map(u => u.id === user.id ? { ...u, role: nuevoRol } : u))
+                            }
+                          } catch (err) {
+                            alert('Error de conexión')
+                          }
+                        }}
+                        className="px-2.5 py-1 rounded-lg text-xs font-medium bg-primary-50 text-primary-700 hover:bg-primary-100 transition-colors"
+                        title="Cambiar rol (Admin/Editor)"
+                      >
+                        🔄 Cambiar rol
+                      </button>
                     </div>
                   </div>
                 ))}
