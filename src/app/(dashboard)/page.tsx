@@ -157,7 +157,7 @@ function CreateUserForm({ onCreated }: { onCreated: (u: { id: string; username: 
 type AdminUser = { id: string; username: string | null; nombre: string; email: string; role: string }
 
 // Modal para editar un usuario existente (nick, nombre, email, rol, contraseña)
-function EditUserModal({ user, onClose, onSaved }: { user: AdminUser; onClose: () => void; onSaved: (u: AdminUser) => void }) {
+function EditUserModal({ user, onClose, onSaved, onDeleted }: { user: AdminUser; onClose: () => void; onSaved: (u: AdminUser) => void; onDeleted: (id: string) => void }) {
   const [username, setUsername] = useState(user.username || '')
   const [nombre, setNombre] = useState(user.nombre || '')
   const [email, setEmail] = useState(user.email)
@@ -188,6 +188,30 @@ function EditUserModal({ user, onClose, onSaved }: { user: AdminUser; onClose: (
         return
       }
       onSaved({ ...user, username, nombre, email, role })
+      onClose()
+      alert(`✅ ${data.message}`)
+    } catch (err) {
+      setMessage('Error de conexión')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const eliminar = async () => {
+    const nombreU = user.nombre || user.email
+    if (!confirm(`¿Seguro que quieres eliminar a "${nombreU}"?\n\nEsta acción no se puede deshacer.`)) return
+    setIsLoading(true)
+    setMessage(null)
+    try {
+      const res = await fetch(`/api/admin/users?id=${encodeURIComponent(user.id)}`, {
+        method: 'DELETE',
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setMessage(data.error || 'Error al eliminar')
+        return
+      }
+      onDeleted(user.id)
       onClose()
       alert(`✅ ${data.message}`)
     } catch (err) {
@@ -235,6 +259,16 @@ function EditUserModal({ user, onClose, onSaved }: { user: AdminUser; onClose: (
             <button type="button" onClick={onClose} className="flex-1 btn-secondary" disabled={isLoading}>Cancelar</button>
             <button type="button" onClick={guardar} className="flex-1 btn-primary" disabled={isLoading}>
               {isLoading ? 'Guardando...' : 'Guardar cambios'}
+            </button>
+          </div>
+          <div className="mt-2">
+            <button
+              type="button"
+              onClick={eliminar}
+              disabled={isLoading}
+              className="w-full py-2 rounded-xl text-sm font-medium bg-red-600 hover:bg-red-700 text-white transition-colors disabled:opacity-50"
+            >
+              🗑️ Eliminar usuario
             </button>
           </div>
         </div>
@@ -555,6 +589,7 @@ function Dashboard() {
           user={editingUser}
           onClose={() => setEditingUser(null)}
           onSaved={(u) => setUsers(prev => prev.map(x => x.id === u.id ? u : x))}
+          onDeleted={(id) => setUsers(prev => prev.filter(x => x.id !== id))}
         />
       )}
 

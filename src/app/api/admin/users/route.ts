@@ -15,6 +15,18 @@ function isAdmin(req: NextRequest): boolean {
   }
 }
 
+// Helper para obtener el id del usuario actual (desde la cookie auth-token)
+function getCurrentUserId(req: NextRequest): string | undefined {
+  const token = req.cookies.get('auth-token')?.value
+  if (!token) return undefined
+  try {
+    const decoded = JSON.parse(atob(token))
+    return decoded.id
+  } catch {
+    return undefined
+  }
+}
+
 export async function GET(request: NextRequest) {
   try {
     // Solo admins pueden ver la lista de usuarios
@@ -116,6 +128,53 @@ export async function POST(request: NextRequest) {
     })
   } catch (error: any) {
     console.error('Error en creación manual:', error)
+    return NextResponse.json(
+      { error: 'Error interno del servidor' },
+      { status: 500 }
+    )
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    // Solo admins pueden eliminar usuarios
+    if (!isAdmin(request)) {
+      return NextResponse.json({ error: 'No autorizado — requiere rol de administrador' }, { status: 401 })
+    }
+
+    const url = new URL(request.url)
+    const id = url.searchParams.get('id') || ''
+
+    if (!id) {
+      return NextResponse.json({ error: 'Falta el id del usuario' }, { status: 400 })
+    }
+
+    const target = await prisma.user.findUnique({ where: { id } })
+    if (!target) {
+      return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 })
+    }
+
+    // Obtener admin actual (cookie auth-token) para evitar auto-eliminación
+    const current = await prisma.user.findUnique({ where: { id: getCurrentUserId(request) } })
+
+    if (current?.id && current.id === target.id) {
+      return NextResponse.json({ error: 'No puedes eliminar tu propia cuenta' }, { status: 400 })
+    }
+
+    // Evitar eliminar al último admin
+    if (target.role === 'admin') {
+      const admins = await prisma.user.count({ where: { role: 'admin' } })
+      if (admins <= 1) {
+        return NextResponse.json({ error: 'No puedes eliminar al último administrador' }, { status: 400 })
+      }
+    }
+
+    // Eliminar usuario (las relaciones de cumpleaños/sucursales se gestionan aparte)
+    await prisma.user.delete({ where: { id: target.id } })
+
+    return NextResponse.json({ success: true, message: `"${target.nombre || target.email}" eliminado` })
+  } catch (error: any) {
+    console.error('Error al eliminar usuario:', error)
     return NextResponse.json(
       { error: 'Error interno del servidor' },
       { status: 500 }
