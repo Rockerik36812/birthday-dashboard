@@ -21,6 +21,32 @@ function urlBase64ToUint8Array(b64: string): Uint8Array {
   return arr
 }
 
+/**
+ * Convierte el ArrayBuffer que devuelve `sub.getKey('p256dh')` (formato raw)
+ * a una cadena base64url SIN padding, que es lo que el servidor espera.
+ * No depende de que el navegador soporte `getKey(name, 'base64url')`.
+ */
+function bufToBase64Url(buf: ArrayBuffer): string {
+  const bytes = new Uint8Array(buf)
+  let bin = ''
+  // Binario a base64
+  for (let i = 0; i < bytes.length; i += 3) {
+    const b0 = bytes[i]
+    const b1 = i + 1 < bytes.length ? bytes[i + 1] : 0
+    const b2 = i + 2 < bytes.length ? bytes[i + 2] : 0
+    bin += 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'[(b0 >> 2) & 63]
+    bin += 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'[((b0 << 4) | (b1 >> 4)) & 63]
+    bin += i + 1 < bytes.length
+      ? 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'[((b1 << 2) | (b2 >> 6)) & 63]
+      : '='
+    bin += i + 2 < bytes.length
+      ? 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'[b2 & 63]
+      : '='
+  }
+  // Quitar padding y transformar a base64url
+  return bin.replace(/=+$/, '').replace(/\+/g, '-').replace(/\//g, '_')
+}
+
 export function PushBell() {
   const [state, setState] = useState<'off' | 'busy' | 'ready' | 'denied' | 'unavailable'>(() =>
     typeof localStorage !== 'undefined' && localStorage.getItem('bd-push') === 'on' ? 'ready' : 'off'
@@ -62,19 +88,19 @@ export function PushBell() {
         return false
       }
       if (sub?.endpoint && sub.getKey('p256dh') && sub.getKey('auth')) {
+        // sub.getKey(name) devuelve ArrayBuffer (formato raw) que en JSON se
+        // serializa como {} y Prisma lo rechaza. Convertimos a base64url
+        // manualmente (no dependemos del soporte de formato del navegador).
+        const p256dhRaw = sub.getKey('p256dh') as ArrayBuffer
+        const authRaw = sub.getKey('auth') as ArrayBuffer
         await fetch('/api/push/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             endpoint: sub.endpoint,
             keys: {
-              // getKey devuelve ArrayBuffer en formato "raw" por defecto;
-              // aquí lo pedimos en base64url (cadena) para que el servidor
-              // las guarde bien en la BD (Prisma pierde los ArrayBuffer).
-              // El navegador soporta getKey(nombre, formato) aunque el tipo
-              // de TS no lo refleje; se castea a la firma ampliada.
-              p256dh: ((sub.getKey as unknown) as (n: string, f: 'base64url') => string)('p256dh', 'base64url'),
-              auth: ((sub.getKey as unknown) as (n: string, f: 'base64url') => string)('auth', 'base64url'),
+              p256dh: bufToBase64Url(p256dhRaw),
+              auth: bufToBase64Url(authRaw),
             },
             userAgent: navigator.userAgent,
             label: 'Dashboard web',
