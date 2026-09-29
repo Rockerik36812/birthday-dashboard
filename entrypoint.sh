@@ -12,9 +12,9 @@ export NEXTAUTH_URL="${NEXTAUTH_URL:-https://cumple.erikservicios.click}"
 export NEXTAUTH_SECRET="${NEXTAUTH_SECRET:-your-secret-change-in-production-min-32-chars-dont-use-in-prod}"
 
 echo "▶️  Inicializando base de datos (prisma db push)..."
-su-exec nextjs node node_modules/prisma/build/index.js db push --schema prisma/schema.prisma --skip-generate 2>&1 || {
+su-exec nextjs node node_modules/prisma/build/index.js db push --schema prisma/schema.prisma --skip-generate --accept-data-loss 2>&1 || {
   echo "⚠️  db push falló, intentando con npx..."
-  su-exec nextjs npx prisma db push --schema prisma/schema.prisma --skip-generate
+  su-exec nextjs npx prisma db push --schema prisma/schema.prisma --skip-generate --accept-data-loss
 }
 echo "✅ Base de datos lista"
 
