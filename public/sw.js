@@ -6,11 +6,15 @@
  *     - kind == "tomorrow" → aviso (un día antes) 🔔
  * NO intercepta requests: la app funciona en línea contra la BD.
  */
+const SW_VERSION = 'v2' // bump al cambiar el SW para forzar su actualizacion
+
 self.addEventListener('install', () => {
   self.skipWaiting()
 })
 
-self.addEventListener('activate', () => {
+self.addEventListener('activate', (event) => {
+  // Tomar control de todas las pestanas al instante (no esperar recarga)
+  event.waitUntil(self.clients.claim())
   // Precarga del manifiesto para que Chrome/Android la reconozca como instalable
   fetch('site.webmanifest', { credentials: 'omit' }).catch(() => {})
 })
