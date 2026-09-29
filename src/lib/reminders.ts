@@ -80,8 +80,12 @@ export async function sendPushNotifications(
             publicKey: keys.publicKey,
             privateKey: keys.privateKey,
           },
-          ttl: 86400, // necesario para WNS / Windows
-        }
+          // La version de web-push instalada acepta 'TTL' en mayusculas
+          // ('ttl' minuscula devuelve 'invalid option'). El tipo TS dice
+          // 'ttl' pero el runtime exige 'TTL' (desincronizacion tipo/runtime);
+          // casteamos a las opciones reales. 86400 es requerido para WNS/Windows.
+          TTL: 86400,
+        } as unknown as Parameters<typeof webpush.sendNotification>[2]
       )
       ok++
     } catch (e: any) {
