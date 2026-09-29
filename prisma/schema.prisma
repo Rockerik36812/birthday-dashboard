@@ -53,6 +53,20 @@ model User {
   @@map("users")
 }
 
+model PushSubscription {
+  id          String   @id @default(cuid())
+  endpoint    String
+  p256dh      String
+  auth        String
+  userAgent   String?
+  label       String?  // etiqueta opcional del dispositivo (ej: "Celular de Erik")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([endpoint])
+  @@map("push_subscriptions")
+}
+
 model VerificationToken {
   identifier String
   token      String   @unique

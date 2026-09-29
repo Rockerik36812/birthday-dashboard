@@ -14,6 +14,7 @@ import { getAge, getDaysUntilBirthday, isBirthdayToday, isBirthdayThisMonth, isB
 import { Calendar } from '@/app/(dashboard)/components/Calendar'
 import { BirthdayModal } from '@/app/(dashboard)/components/BirthdayModal'
 import { WhatsAppShare } from '@/app/(dashboard)/components/WhatsAppShare'
+import { ReminderBanner } from '@/app/(dashboard)/components/ReminderBanner'
 import { BirthdayCard } from '@/app/(dashboard)/components/BirthdayCard'
 import { SucursalesModal } from '@/app/(dashboard)/components/SucursalesModal'
 import { CumpleanosConEdad, Sucursal } from '@/types'
@@ -436,6 +437,9 @@ function Dashboard() {
       )}
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {/* Recordatorio de cumpleaños (hoy / mañana) */}
+        <ReminderBanner cumpleanos={filteredCumpleanos} />
+
         {/* Filtro de sucursal + stats */}
         <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
           <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 min-w-0">

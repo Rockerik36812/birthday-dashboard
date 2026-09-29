@@ -41,6 +41,9 @@ export function middleware(req: NextRequest) {
                   pathname.startsWith('/api/sucursales') ||
                   pathname.startsWith('/api/admin/')
 
+  // Recordatorios: el cron los llama SIN sesión (usan ?secret=)
+  const isPublicApi = pathname.startsWith('/api/reminders') || pathname.startsWith('/api/push/')
+
   // Raíz pasa sin redirección — lo maneja page.tsx según estado del registro
   if (isRoot) return NextResponse.next()
 
@@ -49,9 +52,14 @@ export function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL('/', req.url))
   }
 
-  // Proteger rutas — si no está logueado y es protegida
-  if (!isLoggedIn && !isOnLogin && !isOnRegister && !isOnApi) {
+  // Proteger rutas — si no está logueado y es protegida (dejamos pasar las APIs públicas)
+  if (!isLoggedIn && !isOnLogin && !isOnRegister && !isOnApi && !isPublicApi) {
     return NextResponse.redirect(new URL('/login', req.url))
+  }
+
+  // Dejar pasar siempre las APIs públicas sin más comprobaciones
+  if (isPublicApi && !isLoggedIn) {
+    return NextResponse.next()
   }
 
   return NextResponse.next()
