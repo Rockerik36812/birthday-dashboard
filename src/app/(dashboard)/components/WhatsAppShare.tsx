@@ -341,11 +341,11 @@ export function WhatsAppShare({ cumple, cumpleList, mode, month, onClose }: What
         </div>
 
         {/* Vista previa */}
-        <div className="p-4 flex-1 overflow-auto flex items-center justify-center bg-neutral-50">
+        <div className="p-4 flex-1 overflow-auto flex items-start justify-center bg-neutral-50">
           {items.length > 0 && (
             <div
               ref={captureRef}
-              className="inline-block p-5 rounded-2xl shadow-sm bg-white"
+              className="inline-block py-5 px-5 rounded-2xl shadow-sm bg-white"
               style={{ backgroundColor: '#ffffff' }}
             >
               {renderCard()}
