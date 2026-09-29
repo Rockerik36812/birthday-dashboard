@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Loader2, Mail, Lock, CheckCircle, AlertCircle, Gift } from 'lucide-react'
 import { cn } from '@/lib/cn'
+import { PushBell } from '@/app/(dashboard)/components/PushBell'
 
 export default function LoginPageContent() {
   const router = useRouter()
@@ -146,6 +147,20 @@ export default function LoginPageContent() {
                 Regístrate aquí
               </a>
             </p>
+          </div>
+
+          {/* Notificaciones sin sesión: la campana funciona aunque no estés logueado
+              (SW + Web Push no dependen de la sesión web) */}
+          <div className="mt-5 border-t border-neutral-200 pt-4 flex items-center gap-3">
+            <div className="flex items-center gap-2 py-2 px-2 rounded-xl bg-neutral-100">
+              <PushBell />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-medium text-neutral-700">Notificaciones de cumpleaños</p>
+              <p className="text-[11px] text-neutral-500 leading-tight">
+                Actívalas aquí o dentro del panel: te avisamos <b>un día antes</b> y el <b>mero día</b> a las 9:00 y 12:00 — incluso con la sesión cerrada.
+              </p>
+            </div>
           </div>
         </div>
       </div>
