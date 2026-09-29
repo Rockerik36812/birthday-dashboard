@@ -108,7 +108,7 @@ export function BirthdayModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden animate-in">
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-y-auto max-h-[90vh] animate-in">
         {/* Header */}
         <div className="gradient-primary p-4 flex items-center justify-between">
           <h2 className="text-white font-display font-bold text-lg">
