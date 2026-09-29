@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { parseBirthdayLocal } from '@/lib/utils'
 
 function isAuthed(req: NextRequest): boolean {
   const token = req.cookies.get('auth-token')?.value
@@ -46,7 +47,7 @@ export async function POST(request: NextRequest) {
     const cumpleanos = await prisma.cumpleanos.create({
       data: {
         nombre,
-        fecha: new Date(fecha),
+        fecha: parseBirthdayLocal(fecha),
         sucursalId,
         mensaje,
       },

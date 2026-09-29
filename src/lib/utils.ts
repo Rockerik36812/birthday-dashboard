@@ -55,19 +55,19 @@ export function getDaysUntilBirthday(birthDate: Date | string): number {
 }
 
 export function isBirthdayThisMonth(birthDate: Date | string): boolean {
-  const birth = typeof birthDate === 'string' ? parseBirthdayLocal(birthDate) : birthDate
+  const birth = parseBirthdayLocal(birthDate)
   const today = new Date()
   return birth.getMonth() === today.getMonth()
 }
 
 export function isBirthdayToday(birthDate: Date | string): boolean {
-  const birth = typeof birthDate === 'string' ? parseBirthdayLocal(birthDate) : birthDate
+  const birth = parseBirthdayLocal(birthDate)
   const today = new Date()
   return birth.getMonth() === today.getMonth() && birth.getDate() === today.getDate()
 }
 
 export function isBirthdayInMonth(birthDate: Date | string, monthIndex: number): boolean {
-  const birth = typeof birthDate === 'string' ? parseBirthdayLocal(birthDate) : birthDate
+  const birth = parseBirthdayLocal(birthDate)
   return birth.getMonth() === monthIndex
 }
 
