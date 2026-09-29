@@ -15,6 +15,7 @@ import { Calendar } from '@/app/(dashboard)/components/Calendar'
 import { BirthdayModal } from '@/app/(dashboard)/components/BirthdayModal'
 import { WhatsAppShare } from '@/app/(dashboard)/components/WhatsAppShare'
 import { ReminderBanner } from '@/app/(dashboard)/components/ReminderBanner'
+import { PushBell } from '@/app/(dashboard)/components/PushBell'
 import { BirthdayCard } from '@/app/(dashboard)/components/BirthdayCard'
 import { SucursalesModal } from '@/app/(dashboard)/components/SucursalesModal'
 import { CumpleanosConEdad, Sucursal } from '@/types'
@@ -348,6 +349,8 @@ function Dashboard() {
 
               {/* Usuario */}
               <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+                {/* Campana de notificaciones (siempre visible) */}
+                <PushBell />
                 {(session?.user as any)?.role === 'admin' && (
                   <button 
                     onClick={() => setShowUserManager(!showUserManager)}
