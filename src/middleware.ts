@@ -14,18 +14,32 @@ function isAuthed(req: NextRequest): boolean {
 }
 
 export function middleware(req: NextRequest) {
+  const pathname = req.nextUrl.pathname
+
+  // Archivos estáticos públicos: servir sin sesión (manifest, sw, iconos, fonts)
+  const STATIC_EXT = /\.(png|ico|svg|webmanifest|css|js|woff2?)$/
+  if (
+    pathname === '/site.webmanifest' ||
+    pathname === '/sw.js' ||
+    pathname === '/apple-touch-icon.png' ||
+    pathname.startsWith('/icons/') ||
+    STATIC_EXT.test(pathname)
+  ) {
+    return NextResponse.next()
+  }
+
   const isLoggedIn = isAuthed(req)
-  const isRoot = req.nextUrl.pathname === '/'
-  const isOnLogin = req.nextUrl.pathname.startsWith('/login')
-  const isOnRegister = req.nextUrl.pathname.startsWith('/register')
-  const isOnApi = req.nextUrl.pathname.startsWith('/api/auth/signin') || 
-                  req.nextUrl.pathname.startsWith('/api/register') ||
-                  req.nextUrl.pathname.startsWith('/api/registration-status') ||
-                  req.nextUrl.pathname.startsWith('/api/me') ||
-                  req.nextUrl.pathname.startsWith('/api/logout') ||
-                  req.nextUrl.pathname.startsWith('/api/cumpleanos') ||
-                  req.nextUrl.pathname.startsWith('/api/sucursales') ||
-                  req.nextUrl.pathname.startsWith('/api/admin/')
+  const isRoot = pathname === '/'
+  const isOnLogin = pathname.startsWith('/login')
+  const isOnRegister = pathname.startsWith('/register')
+  const isOnApi = pathname.startsWith('/api/auth/signin') || 
+                  pathname.startsWith('/api/register') ||
+                  pathname.startsWith('/api/registration-status') ||
+                  pathname.startsWith('/api/me') ||
+                  pathname.startsWith('/api/logout') ||
+                  pathname.startsWith('/api/cumpleanos') ||
+                  pathname.startsWith('/api/sucursales') ||
+                  pathname.startsWith('/api/admin/')
 
   // Raíz pasa sin redirección — lo maneja page.tsx según estado del registro
   if (isRoot) return NextResponse.next()
