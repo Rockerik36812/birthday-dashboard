@@ -92,8 +92,9 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-secondary-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-secondary-50 flex flex-col">
+      <main className="flex-1 flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
         {/* Logo y título */}
         <div className="text-center mb-8 animate-in">
           <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl gradient-primary mx-auto mb-4 shadow-soft">
@@ -199,7 +200,13 @@ export default function RegisterPage() {
             <a href="/login" className="text-primary-600 hover:underline">Inicia sesión</a>
           </p>
         </div>
-      </div>
+        </div>
+      </main>
+
+      {/* Pie de página */}
+      <footer className="flex-none py-4 text-center">
+        <p className="text-xs text-neutral-500">By Erik Cano</p>
+      </footer>
     </div>
   )
 }

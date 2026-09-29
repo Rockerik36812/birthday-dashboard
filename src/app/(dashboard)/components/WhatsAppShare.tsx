@@ -235,7 +235,7 @@ export function WhatsAppShare({ cumple, cumpleList, mode, month, onClose }: What
             {/* Footer */}
             <div className="flex items-center justify-center gap-2 pt-4 border-t border-neutral-200/50">
               <Sparkles className="w-4 h-4" style={{ color: sucursalColor }} />
-              <span className="text-sm text-neutral-600">Birthday Dashboard</span>
+              <span className="text-sm text-neutral-600 leading-snug text-center">Birthday Dashboard<br/>·Bamayacc</span>
             </div>
           </div>
 
@@ -299,7 +299,7 @@ export function WhatsAppShare({ cumple, cumpleList, mode, month, onClose }: What
 
           <div className="flex items-center justify-center gap-2 pt-4 border-t border-neutral-200/50">
             <Sparkles className="w-4 h-4" style={{ color: firstColor }} />
-            <span className="text-sm text-neutral-600">Birthday Dashboard</span>
+            <span className="text-sm text-neutral-600 leading-snug text-center">Birthday Dashboard<br/>·Bamayacc</span>
           </div>
         </div>
 
