@@ -82,5 +82,5 @@ export function generateWhatsAppGroupMessage(cumpleaneros: Array<{ nombre: strin
   const lineas = cumpleaneros.map((c, i) =>
     `${i + 1}. 🎂 ${c.nombre}${c.edad ? ` (${c.edad} años)` : ''}:\n   "${c.mensaje}"`
   ).join('\n\n')
-  return `🎉 Cumpleañeros de ${mes.charAt(0).toUpperCase() + mes.slice(1)}\n\n${lineas}\n\n— Birthday Dashboard`
+  return `🎉 Cumpleañeros de ${mes.charAt(0).toUpperCase() + mes.slice(1)}\n\n${lineas}\n\n— Enviado desde Birthday Dashboard`
 }

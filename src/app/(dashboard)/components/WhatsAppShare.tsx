@@ -4,7 +4,7 @@ import { useState, useRef, useCallback } from 'react'
 import html2canvas from 'html2canvas'
 import { generateWhatsAppMessage, generateWhatsAppGroupMessage } from '@/lib/utils'
 import { CumpleanosConEdad } from '@/types'
-import { Share2, Download, Check, Loader2, X, Image, Smartphone } from 'lucide-react'
+import { Share2, Download, Check, Loader2, X, Image } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { getSucursalColor, hexToRgba } from '@/lib/colors'
 import { format, parseBirthdayLocal, getAgeInYear } from '@/lib/utils'
@@ -29,6 +29,9 @@ export function WhatsAppShare({ cumple, cumpleList, mode, month, onClose }: What
   const captureRef = useRef<HTMLDivElement>(null)
   // Mes mostrado (para modo grupal)
   const refMonth = month ?? new Date()
+
+  // ¿Estamos en celular (pantalla táctil) o escritorio?
+  const isMobile = typeof window !== 'undefined' && (window.matchMedia?.('(pointer: coarse)').matches === true || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || ''))
 
   const items = mode === 'individual' ? (cumple ? [cumple] : []) : (cumpleList || [])
   const year = refMonth.getFullYear()
@@ -83,22 +86,28 @@ export function WhatsAppShare({ cumple, cumpleList, mode, month, onClose }: What
 
       const filename = `cumple-${mode === 'individual' ? (cumple?.nombre || 'cumple') : 'grupo'}-${format(new Date(), 'yyyy-MM-dd')}.png`
       const file = new File([blob], filename, { type: 'image/png' })
-      const canNativeShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function'
 
-      if (canNativeShare) {
-        // Hoja de compartir nativa del sistema (Android incluye WhatsApp) con la IMAGEN adjunta
-        try {
-          await navigator.share({ files: [file], text: message })
-          setShareSuccess(true)
-          setShareMethod('whatsapp')
-          setTimeout(() => setShareSuccess(false), 4000)
-        } catch (shareErr) {
-          // El usuario canceló u no soporta archivos → respaldo
-          fallbackDownload(blob, filename)
+      if (isMobile) {
+        // En el cel, la hoja de compartir nativa incluye WhatsApp (archivo adjunto listo)
+        const canNativeShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function'
+        if (canNativeShare) {
+          try {
+            await navigator.share({ files: [file], text: message })
+            setShareSuccess(true)
+            setShareMethod('whatsapp')
+            setTimeout(() => setShareSuccess(false), 4000)
+            return
+          } catch (shareErr) {
+            // El usuario canceló o no soporta archivos → respaldo descarga
+          }
         }
-      } else {
-        // Sin API nativa: descargar la imagen y copiar el texto
         fallbackDownload(blob, filename)
+      } else {
+        // Escritorio: abrir WhatsApp Web directamente (no instalar la app).
+        // Descarga la imagen + copia el texto, y abre web.whatsapp.com con el mensaje.
+        fallbackDownload(blob, filename)
+        window.open(`https://web.whatsapp.com/send?text=${encodeURIComponent(message)}`, '_blank')
+        setShareMethod('whatsapp')
       }
     } catch (error) {
       console.error('Error compartiendo:', error)
@@ -346,7 +355,7 @@ export function WhatsAppShare({ cumple, cumpleList, mode, month, onClose }: What
           >
             {isGenerating && <Loader2 className="w-4 h-4 animate-spin" />}
             {isSharing && <Loader2 className="w-4 h-4 animate-spin" />}
-            {!isGenerating && !isSharing && <Smartphone className="w-4 h-4" />}
+            {!isGenerating && !isSharing && <Share2 className="w-4 h-4" />}
             <span>{isGenerating ? 'Generando...' : isSharing ? 'Compartiendo...' : shareSuccess ? shareMethod === 'descarga' ? '¡Listo!' : '¡Enviado!' : 'Compartir Imagen'}</span>
             {shareSuccess && <Check className="w-4 h-4 text-green-500 animate-scale-in" />}
           </button>
@@ -358,7 +367,9 @@ export function WhatsAppShare({ cumple, cumpleList, mode, month, onClose }: What
             : shareSuccess
               ? shareMethod === 'descarga'
                 ? 'Imagen descargada (y texto copiado). Adjúntala en el chat de WhatsApp.'
-                : 'Imagen lista. Elige WhatsApp en la hoja de compartir para enviarla.'
+                : isMobile
+                  ? 'Imagen lista. Elige WhatsApp en la hoja de compartir para enviarla.'
+                  : 'Se abrió WhatsApp Web. Descarga la imagen y adjúntala en el chat para enviarla.'
               : mode === 'individual'
                 ? 'La tarjeta se comparte como imagen (con fondo blanco) para enviarla por WhatsApp'
                 : 'Se comparte la tarjeta grupal como imagen para enviarla por WhatsApp'}
