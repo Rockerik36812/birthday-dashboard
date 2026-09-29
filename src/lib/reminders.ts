@@ -62,7 +62,7 @@ export async function sendPushNotifications(
 
   let ok = 0
   let fail = 0
-  const payload = JSON.stringify({ kind })
+  const payload = JSON.stringify({ kind, nombres })
 
   for (const sub of subs) {
     try {
