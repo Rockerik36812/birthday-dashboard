@@ -9,6 +9,7 @@ Panel moderno para gestionar y celebrar los cumpleaños del equipo. Diseñado pa
 - **🎨 Tarjetas de cumpleaños bonitas** - Generación de imágenes listas para WhatsApp
 - **📱 Compartir por WhatsApp** - Individual o grupal (cumpleañeros del mes)
 - **🔐 Autenticación Magic Link** - Acceso seguro sin contraseñas
+- **🔔 Recordatorios de cumpleaños** - Aviso **un día antes** y alerta fuerte **el mero día**, a las **9:00 AM y 12:00 PM**, por Web Push (navegador/celular) + banner in-app al abrir el dashboard
 - **🌙 PWA instalable** - Funciona como app nativa en móvil
 - **🎨 Tema rosa/coral** - Diseño femenino, moderno y profesional
 
@@ -71,7 +72,27 @@ EMAIL_FROM="Birthday Dashboard <noreply@tudominio.com>"
 # App
 NEXT_PUBLIC_APP_NAME="Birthday Dashboard"
 NEXT_PUBLIC_APP_URL="http://localhost:3000"
+
+# Web Push (Recordatorios de cumpleaños)
+# Genera claves VAPID con: node -e "console.log(require('web-push').generateVAPIDKeys())"
+VAPID_PUBLIC_KEY="clave-publica-generada"
+VAPID_PRIVATE_KEY="clave-privada-generada"
+VAPID_CONTACT="mailto:tu-email@example.com"
+# Secreto compartido que usa el cron (script/scripts/birthday-reminders.sh) para disparar los recordatorios
+PUSH_WEBHOOK_SECRET="cambia-este-secreto"
 ```
+
+### ⚠️ Para desplegar en OTRO Coolify
+Los secretos del `.env` **no se suben a GitHub** (están en `.gitignore`). En el nuevo Coolify, al configurar el recurso, pega **también** estas variables de entorno:
+
+```env
+VAPID_PUBLIC_KEY=...
+VAPID_PRIVATE_KEY=...
+VAPID_CONTACT=mailto:tu-email@example.com
+PUSH_WEBHOOK_SECRET=<mismo secreto que el cron>
+```
+
+Y asegúrate de que el **volumen persistente** apunte a `/app/data` (ahí guarda la BD SQLite).
 
 ### Gmail App Password
 1. Activa 2FA en tu cuenta Google
