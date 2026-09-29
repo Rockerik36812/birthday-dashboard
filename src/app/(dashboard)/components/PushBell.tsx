@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils'
 /**
  * Campana de notificaciones SIEMPRE visible en el header.
  * Permite activar/desactivar las notificaciones Web Push de recordatorios
- * de cumpleaños (9:00 y 12:00, día antes + el mero día), sin depender
+ * de cumpleaños (9:00 AM y 12:00 PM, día antes + el mero día), sin depender
  * de que haya un banner con cumpleaños inminentes.
  */
 

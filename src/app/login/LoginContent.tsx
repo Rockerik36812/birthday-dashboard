@@ -158,7 +158,7 @@ export default function LoginPageContent() {
             <div className="flex-1 min-w-0">
               <p className="text-xs font-medium text-neutral-700">Notificaciones de cumpleaños</p>
               <p className="text-[11px] text-neutral-500 leading-tight">
-                Actívalas aquí o dentro del panel: te avisamos <b>un día antes</b> y el <b>mero día</b> a las 9:00 y 12:00 — incluso con la sesión cerrada.
+                Actívalas aquí o dentro del panel: te avisamos <b>un día antes</b> y el <b>mero día</b> a las 9:00 AM y 12:00 PM — incluso con la sesión cerrada.
               </p>
             </div>
           </div>
