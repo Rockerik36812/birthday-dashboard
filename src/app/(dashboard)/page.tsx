@@ -428,6 +428,35 @@ function Dashboard() {
                       }`}>
                         {user.role === 'admin' ? '👑 Admin' : '📝 Editor'}
                       </span>
+                      <button
+                        onClick={async () => {
+                          const nueva = window.prompt(`Nueva contraseña para ${user.nombre || user.email} (mínimo 6 caracteres):`, '')
+                          if (!nueva || nueva.length < 6) {
+                            if (nueva) alert('La contraseña debe tener al menos 6 caracteres')
+                            return
+                          }
+                          if (!confirm('¿Cambiar la contraseña de este usuario?')) return
+                          try {
+                            const res = await fetch('/api/admin/users', {
+                              method: 'PATCH',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ id: user.id, password: nueva }),
+                            })
+                            const data = await res.json()
+                            if (!res.ok) {
+                              alert(data.error || 'Error al cambiar la contraseña')
+                            } else {
+                              alert(`✅ ${data.message}`)
+                            }
+                          } catch (err) {
+                            alert('Error de conexión')
+                          }
+                        }}
+                        className="px-2.5 py-1 rounded-lg text-xs font-medium bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors"
+                        title="Cambiar contraseña"
+                      >
+                        🔑 Cambiar contraseña
+                      </button>
                     </div>
                   </div>
                 ))}

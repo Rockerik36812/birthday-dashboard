@@ -107,3 +107,49 @@ export async function POST(request: NextRequest) {
     )
   }
 }
+
+export async function PATCH(request: NextRequest) {
+  try {
+    // Solo admins pueden cambiar contraseñas
+    if (!isAdmin(request)) {
+      return NextResponse.json({ error: 'No autorizado — requiere rol de administrador' }, { status: 401 })
+    }
+
+    const body = await request.json()
+
+    const parsed = z.object({
+      id: z.string().min(1, 'Falta el id del usuario'),
+      password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
+    }).safeParse(body)
+
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'Validación fallida', details: parsed.error.errors },
+        { status: 400 }
+      )
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: parsed.data.id },
+    })
+
+    if (!user) {
+      return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 })
+    }
+
+    const hashedPassword = await bcrypt.hash(parsed.data.password, 12)
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { passwordHash: hashedPassword },
+    })
+
+    return NextResponse.json({ success: true, message: `Contraseña de "${user.nombre || user.email}" actualizada` })
+  } catch (error: any) {
+    console.error('Error al cambiar contraseña:', error)
+    return NextResponse.json(
+      { error: 'Error interno del servidor' },
+      { status: 500 }
+    )
+  }
+}
