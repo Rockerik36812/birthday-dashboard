@@ -25,6 +25,7 @@ export async function GET(request: NextRequest) {
     const allUsers = await prisma.user.findMany({
       select: {
         id: true,
+        username: true,
         nombre: true,
         email: true,
         role: true,
@@ -56,6 +57,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     
     const parsed = z.object({
+      username: z.string().min(3, 'El usuario debe tener al menos 3 caracteres').max(30).regex(/^[a-zA-Z0-9_.]+$/, 'El usuario solo puede contener letras, números, puntos y guiones bajos'),
       nombre: z.string().min(2, 'El nombre debe tener al menos 2 caracteres'),
       email: z.string().email('Email inválido'),
       password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
@@ -69,7 +71,19 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Verificar si el usuario ya existe
+    // Verificar si el usuario (nick) ya existe
+    const existingUsername = await prisma.user.findUnique({
+      where: { username: parsed.data.username.toLowerCase() },
+    })
+
+    if (existingUsername) {
+      return NextResponse.json(
+        { error: 'Este nombre de usuario ya está en uso' },
+        { status: 409 }
+      )
+    }
+
+    // Verificar si el usuario ya existe por email
     const existingUser = await prisma.user.findUnique({
       where: { email: parsed.data.email },
     })
@@ -86,6 +100,7 @@ export async function POST(request: NextRequest) {
     
     const user = await prisma.user.create({
       data: {
+        username: parsed.data.username.toLowerCase(),
         nombre: parsed.data.nombre,
         email: parsed.data.email,
         passwordHash: hashedPassword,

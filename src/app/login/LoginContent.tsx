@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Loader2, Mail, Lock, CheckCircle, AlertCircle, Gift } from 'lucide-react'
+import { Loader2, User, Lock, CheckCircle, AlertCircle, Gift } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { PushBell } from '@/app/(dashboard)/components/PushBell'
 
@@ -12,14 +12,14 @@ export default function LoginPageContent() {
   const callbackUrl = searchParams.get('callbackUrl') || '/'
   const error = searchParams.get('error')
 
-  const [email, setEmail] = useState('')
+  const [identificador, setIdentificador] = useState('')
   const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!email || !password) return
+    if (!identificador || !password) return
 
     setIsLoading(true)
     setMessage(null)
@@ -28,7 +28,7 @@ export default function LoginPageContent() {
       const res = await fetch('/api/auth/signin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ identificador, password }),
       })
 
       if (res.redirected) {
@@ -88,22 +88,26 @@ export default function LoginPageContent() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label htmlFor="email" className="label flex items-center gap-1.5">
-                <Mail className="w-4 h-4 text-primary-500" />
-                Correo electrónico
+              <label htmlFor="identificador" className="label flex items-center gap-1.5">
+                <User className="w-4 h-4 text-primary-500" />
+                Usuario o Correo
               </label>
               <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="tu@email.com"
+                id="identificador"
+                type="text"
+                value={identificador}
+                onChange={(e) => setIdentificador(e.target.value)}
+                placeholder="tu usuario o email"
                 className="input"
                 required
-                autoComplete="email"
+                minLength={3}
+                autoComplete="username"
                 autoFocus
                 disabled={isLoading}
               />
+              <p className="mt-1 text-xs text-neutral-500">
+                Puedes entrar con tu usuario o con tu correo
+              </p>
             </div>
 
             <div>
@@ -126,7 +130,7 @@ export default function LoginPageContent() {
 
             <button
               type="submit"
-              disabled={isLoading || !email || !password}
+              disabled={isLoading || !identificador || !password}
               className="w-full btn-primary gap-2 justify-center py-3 mt-2"
             >
               {isLoading ? (

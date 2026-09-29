@@ -8,7 +8,7 @@ export async function POST(req: Request) {
     const body = await req.json()
     
     const parsed = z.object({
-      email: z.string().email(),
+      identificador: z.string().min(3),
       password: z.string().min(6),
     }).safeParse(body)
 
@@ -16,9 +16,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Validación fallida' }, { status: 400 })
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email: parsed.data.email },
-    })
+    const identificador = parsed.data.identificador.trim()
+
+    // Aceptar email O usuario (nick). Normalizamos el nick a minúsculas.
+    const esEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identificador)
+    const user = esEmail
+      ? await prisma.user.findUnique({ where: { email: identificador.toLowerCase() } })
+      : await prisma.user.findFirst({ where: { username: identificador.toLowerCase() } })
 
     if (!user || !user.passwordHash) {
       return NextResponse.json(
@@ -40,7 +44,7 @@ export async function POST(req: Request) {
       status: 302,
       headers: {
         Location: '/',
-        'Set-Cookie': `auth-token=${btoa(JSON.stringify({ id: user.id, email: user.email, name: user.nombre, role: user.role }))}; path=/; httpOnly; SameSite=Strict`,
+        'Set-Cookie': `auth-token=${btoa(JSON.stringify({ id: user.id, email: user.email, username: user.username, name: user.nombre, role: user.role }))}; path=/; httpOnly; SameSite=Strict`,
       },
     })
   } catch (error: any) {

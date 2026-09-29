@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Loader2, User, Mail, Lock, CheckCircle, AlertCircle, Gift, Info, Shield } from 'lucide-react'
+import { Loader2, User, Mail, Lock, CheckCircle, AlertCircle, Gift, Info, Shield, AtSign } from 'lucide-react'
 import { cn } from '@/lib/cn'
 
 export default function RegisterPage() {
   const router = useRouter()
   
+  const [username, setUsername] = useState('')
   const [nombre, setNombre] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -33,7 +34,7 @@ export default function RegisterPage() {
       const res = await fetch('/api/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nombre, email, password }),
+        body: JSON.stringify({ username, nombre, email, password }),
       })
 
       const data = await res.json()
@@ -124,6 +125,28 @@ export default function RegisterPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
+              <label htmlFor="username" className="label flex items-center gap-1.5">
+                <AtSign className="w-4 h-4 text-primary-500" />
+                Usuario
+              </label>
+              <input
+                id="username"
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="ej: erik.cano"
+                className="input"
+                required
+                minLength={3}
+                autoComplete="username"
+                disabled={isLoading}
+              />
+              <p className="mt-1 text-xs text-neutral-500">
+                Con él (o tu correo) podrás iniciar sesión
+              </p>
+            </div>
+
+            <div>
               <label htmlFor="nombre" className="label flex items-center gap-1.5">
                 <User className="w-4 h-4 text-primary-500" />
                 Nombre completo
@@ -181,7 +204,7 @@ export default function RegisterPage() {
 
             <button
               type="submit"
-              disabled={isLoading || !nombre || !email || !password}
+              disabled={isLoading || !username || !nombre || !email || !password}
               className="w-full btn-primary gap-2 justify-center py-3 mt-2"
             >
               {isLoading ? (

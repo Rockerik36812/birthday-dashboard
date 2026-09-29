@@ -40,6 +40,7 @@ model Cumpleanos {
 model User {
   id            String    @id @default(cuid())
   email         String    @unique
+  username      String?   @unique   // nick de usuario (login alterno al email)
   nombre        String?
   passwordHash  String?   // Para magic link no es obligatorio, pero por si acaso
   role          String    @default("admin") // admin, editor

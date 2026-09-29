@@ -22,7 +22,8 @@ import { CumpleanosConEdad, Sucursal } from '@/types'
 import { hexToRgba } from '@/lib/colors'
 
 // Componente para crear usuarios (admin only)
-function CreateUserForm({ onCreated }: { onCreated: (u: { id: string; nombre: string; email: string; role: string }) => void }) {
+function CreateUserForm({ onCreated }: { onCreated: (u: { id: string; username: string | null; nombre: string; email: string; role: string }) => void }) {
+  const [username, setUsername] = useState('')
   const [nombre, setNombre] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -32,7 +33,7 @@ function CreateUserForm({ onCreated }: { onCreated: (u: { id: string; nombre: st
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!nombre || !email || !password) return
+    if (!username || !nombre || !email || !password) return
 
     setIsLoading(true)
     setMessage(null)
@@ -41,7 +42,7 @@ function CreateUserForm({ onCreated }: { onCreated: (u: { id: string; nombre: st
       const res = await fetch('/api/admin/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nombre, email, password, role }),
+        body: JSON.stringify({ username, nombre, email, password, role }),
       })
 
       const data = await res.json()
@@ -59,6 +60,7 @@ function CreateUserForm({ onCreated }: { onCreated: (u: { id: string; nombre: st
         onCreated(newUser)
       }
 
+      setUsername('')
       setNombre('')
       setEmail('')
       setPassword('')
@@ -81,7 +83,15 @@ function CreateUserForm({ onCreated }: { onCreated: (u: { id: string; nombre: st
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+        <input
+          type="text"
+          placeholder="Usuario"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          className="px-3 py-2 rounded-lg border border-neutral-200 text-sm focus:border-primary-400 outline-none"
+          required
+        />
         <input
           type="text"
           placeholder="Nombre"
@@ -160,7 +170,7 @@ function Dashboard() {
   const [showUserManager, setShowUserManager] = useState(false)
   const [showSucursalesModal, setShowSucursalesModal] = useState(false)
   const [calCurrentMonth, setCalCurrentMonth] = useState<Date>(new Date())
-  const [users, setUsers] = useState<{ id: string; nombre: string; email: string; role: string }[]>([])
+  const [users, setUsers] = useState<{ id: string; username: string | null; nombre: string; email: string; role: string }[]>([])
 
   // Redirigir si no hay sesión — decidir a /register (sin admin) o /login (ya existe)
   useEffect(() => {
@@ -417,7 +427,10 @@ function Dashboard() {
                       </div>
                       <div>
                         <p className="font-medium text-neutral-900">{user.nombre || user.email}</p>
-                        <p className="text-xs text-neutral-500">{user.email}</p>
+                        <p className="text-xs text-neutral-500">
+                          {user.email}
+                          {user.username && <span className="ml-1 text-neutral-400">· @{user.username}</span>}
+                        </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">

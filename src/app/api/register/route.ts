@@ -17,6 +17,7 @@ export async function POST(req: Request) {
     }
 
     const parsed = z.object({
+      username: z.string().min(3, 'El usuario debe tener al menos 3 caracteres').max(30).regex(/^[a-zA-Z0-9_.]+$/, 'El usuario solo puede contener letras, números, puntos y guiones bajos'),
       nombre: z.string().min(2, 'El nombre debe tener al menos 2 caracteres'),
       email: z.string().email('Email inválido'),
       password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
@@ -29,7 +30,7 @@ export async function POST(req: Request) {
       )
     }
 
-    // Verificar si el usuario ya existe
+    // Verificar si el correo ya existe
     const existingUser = await prisma.user.findUnique({
       where: { email: parsed.data.email },
     })
@@ -41,11 +42,24 @@ export async function POST(req: Request) {
       )
     }
 
+    // Verificar si el usuario (nick) ya existe
+    const existingUsername = await prisma.user.findUnique({
+      where: { username: parsed.data.username.toLowerCase() },
+    })
+
+    if (existingUsername) {
+      return NextResponse.json(
+        { error: 'Este nombre de usuario ya está en uso' },
+        { status: 409 }
+      )
+    }
+
     // Crear nuevo usuario con contraseña hasheada y rol ADMIN
     const hashedPassword = await bcrypt.hash(parsed.data.password, 12)
     
     const user = await prisma.user.create({
       data: {
+        username: parsed.data.username.toLowerCase(),
         nombre: parsed.data.nombre,
         email: parsed.data.email,
         passwordHash: hashedPassword,
