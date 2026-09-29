@@ -125,7 +125,7 @@ export async function POST(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   try {
-    // Solo admins pueden cambiar contraseñas
+    // Solo admins pueden actualizar usuarios
     if (!isAdmin(request)) {
       return NextResponse.json({ error: 'No autorizado — requiere rol de administrador' }, { status: 401 })
     }
@@ -136,6 +136,9 @@ export async function PATCH(request: NextRequest) {
       id: z.string().min(1, 'Falta el id del usuario'),
     })
     const parsed = base.extend({
+      username: z.string().min(3, 'El usuario debe tener al menos 3 caracteres').max(30).regex(/^[a-zA-Z0-9_.]+$/, 'El usuario solo puede contener letras, números, puntos y guiones bajos').optional(),
+      nombre: z.string().min(2, 'El nombre debe tener al menos 2 caracteres').optional(),
+      email: z.string().email('Email inválido').optional(),
       password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres').optional(),
       role: z.enum(['admin', 'editor']).optional(),
     }).safeParse(body)
@@ -147,10 +150,11 @@ export async function PATCH(request: NextRequest) {
       )
     }
 
-    const { id, password, role } = parsed.data
-    if (!password && !role) {
+    const { id, username, nombre, email, password, role } = parsed.data
+    const tieneCambio = username || nombre || email || password || role
+    if (!tieneCambio) {
       return NextResponse.json(
-        { error: 'Debes enviar una contraseña y/o un rol nuevo' },
+        { error: 'No hay nada que actualizar' },
         { status: 400 }
       )
     }
@@ -163,7 +167,26 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 })
     }
 
-    const data: { passwordHash?: string; role?: string } = {}
+    // Validar unicidad si cambia el username
+    if (username && username.toLowerCase() !== user.username) {
+      const conflict = await prisma.user.findUnique({ where: { username: username.toLowerCase() } })
+      if (conflict) {
+        return NextResponse.json({ error: 'Este nombre de usuario ya está en uso' }, { status: 409 })
+      }
+    }
+
+    // Validar unicidad si cambia el email
+    if (email && email.toLowerCase() !== user.email) {
+      const conflict = await prisma.user.findUnique({ where: { email: email.toLowerCase() } })
+      if (conflict) {
+        return NextResponse.json({ error: 'Este correo ya está registrado' }, { status: 409 })
+      }
+    }
+
+    const data: { username?: string; nombre?: string; email?: string; passwordHash?: string; role?: string } = {}
+    if (username) data.username = username.toLowerCase()
+    if (nombre) data.nombre = nombre
+    if (email) data.email = email.toLowerCase()
     if (password) data.passwordHash = await bcrypt.hash(password, 12)
     if (role) data.role = role
 
@@ -173,6 +196,9 @@ export async function PATCH(request: NextRequest) {
     })
 
     const cambios: string[] = []
+    if (username) cambios.push(`usuario → @${username}`)
+    if (nombre) cambios.push('nombre')
+    if (email) cambios.push('correo')
     if (password) cambios.push('contraseña')
     if (role) cambios.push(`rol → ${role === 'admin' ? '👑 Admin' : '📝 Editor'}`)
 

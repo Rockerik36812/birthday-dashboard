@@ -154,6 +154,95 @@ function CreateUserForm({ onCreated }: { onCreated: (u: { id: string; username: 
   )
 }
 
+type AdminUser = { id: string; username: string | null; nombre: string; email: string; role: string }
+
+// Modal para editar un usuario existente (nick, nombre, email, rol, contraseña)
+function EditUserModal({ user, onClose, onSaved }: { user: AdminUser; onClose: () => void; onSaved: (u: AdminUser) => void }) {
+  const [username, setUsername] = useState(user.username || '')
+  const [nombre, setNombre] = useState(user.nombre || '')
+  const [email, setEmail] = useState(user.email)
+  const [role, setRole] = useState(user.role)
+  const [password, setPassword] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+  const [message, setMessage] = useState<string | null>(null)
+
+  const guardar = async () => {
+    const payload: any = { id: user.id }
+    if (username && username !== user.username) payload.username = username
+    if (nombre && nombre !== user.nombre) payload.nombre = nombre
+    if (email && email !== user.email) payload.email = email
+    if (role !== user.role) payload.role = role
+    if (password) payload.password = password
+
+    setIsLoading(true)
+    setMessage(null)
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setMessage(data.error || 'Error al actualizar')
+        return
+      }
+      onSaved({ ...user, username, nombre, email, role })
+      onClose()
+      alert(`✅ ${data.message}`)
+    } catch (err) {
+      setMessage('Error de conexión')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in">
+      <div className="w-full max-w-sm bg-white rounded-xl shadow-2xl overflow-hidden">
+        <div className="gradient-primary p-3 flex items-center justify-between">
+          <h3 className="text-white font-display font-bold text-base">✏️ Editar usuario</h3>
+          <button onClick={onClose} className="p-1 rounded-xl bg-white/20 hover:bg-white/30 transition-colors text-white" aria-label="Cerrar">✕</button>
+        </div>
+        <div className="p-4 space-y-3">
+          {message && <div className="p-3 rounded-lg text-sm bg-red-50 text-red-700">{message}</div>}
+
+          <div>
+            <label className="label">Usuario</label>
+            <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="@nick" className="input" autoComplete="off" />
+          </div>
+          <div>
+            <label className="label">Nombre completo</label>
+            <input type="text" value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Nombre" className="input" autoComplete="off" />
+          </div>
+          <div>
+            <label className="label">Correo</label>
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email" className="input" autoComplete="off" />
+          </div>
+          <div>
+            <label className="label">Rol</label>
+            <select value={role} onChange={(e) => setRole(e.target.value)} className="input appearance-none">
+              <option value="editor">📝 Editor</option>
+              <option value="admin">👑 Admin</option>
+            </select>
+          </div>
+          <div>
+            <label className="label">Nueva contraseña <span className="text-neutral-400">(opcional)</span></label>
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Dejar vacío para no cambiar" className="input" autoComplete="new-password" />
+          </div>
+
+          <div className="flex gap-3 pt-1">
+            <button type="button" onClick={onClose} className="flex-1 btn-secondary" disabled={isLoading}>Cancelar</button>
+            <button type="button" onClick={guardar} className="flex-1 btn-primary" disabled={isLoading}>
+              {isLoading ? 'Guardando...' : 'Guardar cambios'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function Dashboard() {
   const { user, status } = useAuth()
   const session = user ? { user } : null
@@ -171,6 +260,7 @@ function Dashboard() {
   const [showSucursalesModal, setShowSucursalesModal] = useState(false)
   const [calCurrentMonth, setCalCurrentMonth] = useState<Date>(new Date())
   const [users, setUsers] = useState<{ id: string; username: string | null; nombre: string; email: string; role: string }[]>([])
+  const [editingUser, setEditingUser] = useState<{ id: string; username: string | null; nombre: string; email: string; role: string } | null>(null)
 
   // Redirigir si no hay sesión — decidir a /register (sin admin) o /login (ya existe)
   useEffect(() => {
@@ -442,60 +532,11 @@ function Dashboard() {
                         {user.role === 'admin' ? '👑 Admin' : '📝 Editor'}
                       </span>
                       <button
-                        onClick={async () => {
-                          const nueva = window.prompt(`Nueva contraseña para ${user.nombre || user.email} (mínimo 6 caracteres):`, '')
-                          if (!nueva || nueva.length < 6) {
-                            if (nueva) alert('La contraseña debe tener al menos 6 caracteres')
-                            return
-                          }
-                          if (!confirm('¿Cambiar la contraseña de este usuario?')) return
-                          try {
-                            const res = await fetch('/api/admin/users', {
-                              method: 'PATCH',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ id: user.id, password: nueva }),
-                            })
-                            const data = await res.json()
-                            if (!res.ok) {
-                              alert(data.error || 'Error al cambiar la contraseña')
-                            } else {
-                              alert(`✅ ${data.message}`)
-                            }
-                          } catch (err) {
-                            alert('Error de conexión')
-                          }
-                        }}
-                        className="px-2.5 py-1 rounded-lg text-xs font-medium bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors"
-                        title="Cambiar contraseña"
-                      >
-                        🔑 Cambiar contraseña
-                      </button>
-                      <button
-                        onClick={async () => {
-                          const nuevoRol = user.role === 'admin' ? 'editor' : 'admin'
-                          const labelNuevo = nuevoRol === 'admin' ? '👑 Admin' : '📝 Editor'
-                          if (!confirm(`¿Cambiar el rol de ${user.nombre || user.email} a ${labelNuevo}?`)) return
-                          try {
-                            const res = await fetch('/api/admin/users', {
-                              method: 'PATCH',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ id: user.id, role: nuevoRol }),
-                            })
-                            const data = await res.json()
-                            if (!res.ok) {
-                              alert(data.error || 'Error al cambiar el rol')
-                            } else {
-                              alert(`✅ ${data.message}`)
-                              setUsers(prev => prev.map(u => u.id === user.id ? { ...u, role: nuevoRol } : u))
-                            }
-                          } catch (err) {
-                            alert('Error de conexión')
-                          }
-                        }}
+                        onClick={() => setEditingUser(user)}
                         className="px-2.5 py-1 rounded-lg text-xs font-medium bg-primary-50 text-primary-700 hover:bg-primary-100 transition-colors"
-                        title="Cambiar rol (Admin/Editor)"
+                        title="Editar usuario (nick, nombre, email, rol, contraseña)"
                       >
-                        🔄 Cambiar rol
+                        ✏️ Editar
                       </button>
                     </div>
                   </div>
@@ -506,6 +547,15 @@ function Dashboard() {
             )}
           </div>
         </div>
+      )}
+
+      {/* Modal de edición de usuario */}
+      {showUserManager && editingUser && (
+        <EditUserModal
+          user={editingUser}
+          onClose={() => setEditingUser(null)}
+          onSaved={(u) => setUsers(prev => prev.map(x => x.id === u.id ? u : x))}
+        />
       )}
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
