@@ -119,14 +119,20 @@ export function BirthdayModal({
   }
 
   // Sube la foto elegida. onChange y onInput llaman aquí. Mejor visibilidad de errores.
+  // Deduplicación: firma = nombre+tamaño+últimaModificación para no re-subir el mismo archivo
+  const ultimaFirma = useRef('')
   const subirFoto = async (archivo?: File | null) => {
     if (!archivo) { setFotoDiag('1.sin-archivo'); return }
-    setFotoDiag(`2.archivo:${archivo.name} ${Math.round(archivo.size / 1024)}KB t=${archivo.type || 'vacio'}`)
+    setFotoDiag(`2.archivo:${archivo.name} ${Math.round(archivo.size / 1024)}KB`)
     if (archivo.size > 8 * 1024 * 1024) {
       setFotoError('La imagen supera los 8 MB. Sube una más ligera.')
       setFotoStatus('error')
       return
     }
+    // No re-subir el mismo archivo (bug de Chrome: onChange puede disparar 2 veces al perder foco)
+    const firma = `${archivo.name}:${archivo.size}:${archivo.lastModified}`
+    if (ultimaFirma.current === firma) return
+    ultimaFirma.current = firma
     setFotoStatus('subiendo')
     setFotoError('')
     const fd = new FormData()
@@ -157,6 +163,22 @@ export function BirthdayModal({
       setFotoStatus('error')
     }
   }
+
+  // Lee el input file y sube su archivo. La usan el polling y los eventos.
+  const leerArchivoDelInput = () => {
+    if (fotoInputRef.current) {
+      const f = fotoInputRef.current.files?.[0]
+      if (f) subirFoto(f)
+    }
+  }
+
+  // POLLING de seguridad: Chrome Android a veces NO dispara onChange al elegir el archivo.
+  // Revisamos directo si el archivo llegó al input (chequeo cada 400ms) y lo subimos.
+  useEffect(() => {
+    if (!isOpen) return
+    const timer = setInterval(leerArchivoDelInput, 400)
+    return () => clearInterval(timer)
+  }, [isOpen])
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in">
@@ -297,8 +319,9 @@ export function BirthdayModal({
                   type="file"
                   className="input-file"
                   onClick={(e) => { e.currentTarget.value = '' }}
-                  onChange={async (e) => { await subirFoto(e.target.files?.[0]) }}
-                  onInput={async (e) => { await subirFoto((e.target as HTMLInputElement).files?.[0]) }}
+                  onChangeCapture={async (e) => { await leerArchivoDelInput() }}
+                  onChange={async (e) => { await leerArchivoDelInput() }}
+                  onInput={async (e) => { await leerArchivoDelInput() }}
                 />
                 {/* Botón explícito para abrir el selector (label nativo que dispara el input oculto) */}
                 <label
