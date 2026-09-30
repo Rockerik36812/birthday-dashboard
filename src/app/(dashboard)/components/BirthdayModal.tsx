@@ -70,6 +70,8 @@ export function BirthdayModal({
   // Foto guardada en estado local (NO depende del hook): la añadimos manualmente al enviar.
   const [fotoUrl, setFotoUrl] = useState<string>('')
   const fotoInputRef = useRef<HTMLInputElement | null>(null)
+  // Diagnóstico visible para depurar la subida en el cel (se quita al final)
+  const [fotoDiag, setFotoDiag] = useState<string>('')
 
   useEffect(() => {
     if (isOpen && initialData) {
@@ -114,6 +116,46 @@ export function BirthdayModal({
     // La foto va por estado local (no por el hook) → la añadimos manualmente.
     await onSubmit({ ...data, foto: fotoUrl || undefined })
     onClose()
+  }
+
+  // Sube la foto elegida. onChange y onInput llaman aquí. Mejor visibilidad de errores.
+  const subirFoto = async (archivo?: File | null) => {
+    if (!archivo) { setFotoDiag('1.sin-archivo'); return }
+    setFotoDiag(`2.archivo:${archivo.name} ${Math.round(archivo.size / 1024)}KB t=${archivo.type || 'vacio'}`)
+    if (archivo.size > 8 * 1024 * 1024) {
+      setFotoError('La imagen supera los 8 MB. Sube una más ligera.')
+      setFotoStatus('error')
+      return
+    }
+    setFotoStatus('subiendo')
+    setFotoError('')
+    const fd = new FormData()
+    fd.append('file', archivo)
+    try {
+      const res = await fetch('/api/upload', { method: 'POST', body: fd })
+      setFotoDiag(`3.http:${res.status}`)
+      if (res.status === 401) {
+        setFotoError('Tu sesión venció. Vuelve a iniciar sesión y repite la subida.')
+        setFotoStatus('error')
+        setTimeout(() => { window.location.href = '/login' }, 1800)
+        return
+      }
+      if (!res.ok) {
+        let msg = 'No se pudo subir la foto. Intenta de nuevo.'
+        try { const d = await res.json(); if (d.error) msg = d.error } catch {}
+        setFotoError(msg)
+        setFotoStatus('error')
+        return
+      }
+      const d = await res.json()
+      setFotoUrl(d.url)
+      setFotoStatus('listo')
+      setFotoDiag('4.éxito')
+    } catch (err) {
+      setFotoDiag(`5.error:${err}`)
+      setFotoError('Error de conexión al subir la foto. Revisa tu internet e intenta de nuevo.')
+      setFotoStatus('error')
+    }
   }
 
   return (
@@ -255,44 +297,8 @@ export function BirthdayModal({
                   type="file"
                   className="input-file"
                   onClick={(e) => { e.currentTarget.value = '' }}
-                  onChange={async (e) => {
-                    const archivo = e.target.files?.[0]
-                    if (!archivo) return
-                    if (archivo.size > 8 * 1024 * 1024) {
-                      setFotoError('La imagen supera los 8 MB. Sube una más ligera.')
-                      setFotoStatus('error')
-                      e.target.value = ''
-                      return
-                    }
-                    setFotoStatus('subiendo')
-                    setFotoError('')
-                    const fd = new FormData()
-                    fd.append('file', archivo)
-                    try {
-                      const res = await fetch('/api/upload', { method: 'POST', body: fd })
-                      if (res.status === 401) {
-                        setFotoError('Tu sesión venció. Vuelve a iniciar sesión y repite la subida.')
-                        setFotoStatus('error')
-                        setTimeout(() => { window.location.href = '/login' }, 1800)
-                        return
-                      }
-                      if (!res.ok) {
-                        let msg = 'No se pudo subir la foto. Intenta de nuevo.'
-                        try { const d = await res.json(); if (d.error) msg = d.error } catch {}
-                        setFotoError(msg)
-                        setFotoStatus('error')
-                        e.target.value = ''
-                        return
-                      }
-                      const d = await res.json()
-                      setFotoUrl(d.url)
-                      e.target.value = ''
-                      setFotoStatus('listo')
-                    } catch (err) {
-                      setFotoError('Error de conexión al subir la foto. Revisa tu internet e intenta de nuevo.')
-                      setFotoStatus('error')
-                    }
-                  }}
+                  onChange={async (e) => { await subirFoto(e.target.files?.[0]) }}
+                  onInput={async (e) => { await subirFoto((e.target as HTMLInputElement).files?.[0]) }}
                 />
                 {/* Botón explícito para abrir el selector (label nativo que dispara el input oculto) */}
                 <label
@@ -305,6 +311,13 @@ export function BirthdayModal({
                 <p className="mt-1 text-xs text-neutral-500">
                   Toca el botón o el campo para elegir una foto (JPG, PNG, WEBP o GIF, máx 8 MB)
                 </p>
+
+                {/* DIAGNÓSTICO (temporal): para ver en el cel qué pasa al elegir */}
+                {fotoDiag && (
+                  <p className="mt-1 text-[11px] font-mono text-neutral-500 bg-neutral-50 border border-neutral-200 rounded px-1.5 py-0.5" dir="auto">
+                    📡 {fotoDiag}
+                  </p>
+                )}
 
                 {/* Estado de la subida */}
                 {fotoStatus === 'subiendo' && (
