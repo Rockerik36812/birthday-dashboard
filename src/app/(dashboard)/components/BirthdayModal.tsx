@@ -72,6 +72,8 @@ export function BirthdayModal({
   const fotoInputRef = useRef<HTMLInputElement | null>(null)
   // Diagnóstico visible para depurar la subida en el cel (se quita al final)
   const [fotoDiag, setFotoDiag] = useState<string>('')
+  // Deduplicación de subida (evita reenviar el mismo archivo). DEBE ir antes del return null.
+  const ultimaFirma = useRef('')
 
   useEffect(() => {
     if (isOpen && initialData) {
@@ -110,6 +112,19 @@ export function BirthdayModal({
     }
   }, [isOpen])
 
+  // POLLING de seguridad: Chrome Android a veces NO dispara onChange al elegir el archivo.
+  // Revisamos directo si el archivo llegó al input (chequeo cada 400ms) y lo subimos.
+  useEffect(() => {
+    if (!isOpen) return
+    const timer = setInterval(() => {
+      if (fotoInputRef.current) {
+        const f = fotoInputRef.current.files?.[0]
+        if (f) subirFoto(f)
+      }
+    }, 400)
+    return () => clearInterval(timer)
+  }, [isOpen])
+
   if (!isOpen) return null
 
   const handleSubmitForm = async (data: BirthdayFormData) => {
@@ -119,8 +134,6 @@ export function BirthdayModal({
   }
 
   // Sube la foto elegida. onChange y onInput llaman aquí. Mejor visibilidad de errores.
-  // Deduplicación: firma = nombre+tamaño+últimaModificación para no re-subir el mismo archivo
-  const ultimaFirma = useRef('')
   const subirFoto = async (archivo?: File | null) => {
     if (!archivo) { setFotoDiag('1.sin-archivo'); return }
     setFotoDiag(`2.archivo:${archivo.name} ${Math.round(archivo.size / 1024)}KB`)
@@ -171,14 +184,6 @@ export function BirthdayModal({
       if (f) subirFoto(f)
     }
   }
-
-  // POLLING de seguridad: Chrome Android a veces NO dispara onChange al elegir el archivo.
-  // Revisamos directo si el archivo llegó al input (chequeo cada 400ms) y lo subimos.
-  useEffect(() => {
-    if (!isOpen) return
-    const timer = setInterval(leerArchivoDelInput, 400)
-    return () => clearInterval(timer)
-  }, [isOpen])
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in">
