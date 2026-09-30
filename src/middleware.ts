@@ -13,6 +13,16 @@ function isAuthed(req: NextRequest): boolean {
   }
 }
 
+// Aplica cabeceras anti-caché al HTML para que el navegador SIEMPRE pida la
+// versión nueva al servidor (evita que el cel se quede con la página vieja
+// cacheada por s-maxage=31536000 de Next).
+function noCache(res: NextResponse): NextResponse {
+  res.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
+  res.headers.set('Pragma', 'no-cache')
+  res.headers.set('Expires', '0')
+  return res
+}
+
 export function middleware(req: NextRequest) {
   const pathname = req.nextUrl.pathname
 
@@ -25,7 +35,7 @@ export function middleware(req: NextRequest) {
     pathname.startsWith('/icons/') ||
     STATIC_EXT.test(pathname)
   ) {
-    return NextResponse.next()
+    return noCache(NextResponse.next())
   }
 
   const isLoggedIn = isAuthed(req)
@@ -47,24 +57,24 @@ export function middleware(req: NextRequest) {
   const isPublicApi = pathname.startsWith('/api/reminders') || pathname.startsWith('/api/push/')
 
   // Raíz pasa sin redirección — lo maneja page.tsx según estado del registro
-  if (isRoot) return NextResponse.next()
+  if (isRoot) return noCache(NextResponse.next())
 
   // Redirigir autenticados fuera del login/registro
   if (isLoggedIn && (isOnLogin || isOnRegister)) {
-    return NextResponse.redirect(new URL('/', req.url))
+    return noCache(NextResponse.redirect(new URL('/', req.url)))
   }
 
   // Proteger rutas — si no está logueado y es protegida (dejamos pasar las APIs públicas)
   if (!isLoggedIn && !isOnLogin && !isOnRegister && !isOnApi && !isPublicApi) {
-    return NextResponse.redirect(new URL('/login', req.url))
+    return noCache(NextResponse.redirect(new URL('/login', req.url)))
   }
 
   // Dejar pasar siempre las APIs públicas sin más comprobaciones
   if (isPublicApi && !isLoggedIn) {
-    return NextResponse.next()
+    return noCache(NextResponse.next())
   }
 
-  return NextResponse.next()
+  return noCache(NextResponse.next())
 }
 
 export const config = {

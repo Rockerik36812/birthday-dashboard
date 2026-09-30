@@ -6,7 +6,7 @@
  *     - kind == "tomorrow" → aviso (un día antes) 🔔
  * NO intercepta requests: la app funciona en línea contra la BD.
  */
-const SW_VERSION = 'v2' // bump al cambiar el SW para forzar su actualizacion
+const SW_VERSION = 'v3' // bump al cambiar el SW para forzar su actualizacion
 
 self.addEventListener('install', () => {
   self.skipWaiting()
