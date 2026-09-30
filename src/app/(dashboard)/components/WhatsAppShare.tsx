@@ -182,20 +182,9 @@ export function WhatsAppShare({ cumple, cumpleList, mode, month, onClose }: What
           <div className="relative z-10 text-center">
             {/* Header festivo */}
             <div className="mb-6">
-              {cumple.foto ? (
-                <div className="w-24 h-24 rounded-full mb-4 overflow-hidden border-4 shadow-lg mx-auto" style={{ borderColor: sucursalColor }}>
-                  <img
-                    src={cumple.foto}
-                    alt=""
-                    className="w-full h-full object-cover"
-                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                  />
-                </div>
-              ) : (
-                <div className="inline-flex items-center justify-center w-20 h-20 rounded-full mb-4" style={{ backgroundColor: hexToRgba(sucursalColor, 0.15) }}>
-                  <span className="text-4xl">{themeEmoji || '🎁'}</span>
-                </div>
-              )}
+              <div className="inline-flex items-center justify-center w-20 h-20 rounded-full mb-4" style={{ backgroundColor: hexToRgba(sucursalColor, 0.15) }}>
+                <span className="text-4xl">{themeEmoji || '🎁'}</span>
+              </div>
               {esHoy && (
                 <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-3 animate-pulse" style={{ backgroundColor: hexToRgba(sucursalColor, 0.2), color: sucursalColor }}>
                   <Heart className="w-5 h-5" />

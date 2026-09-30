@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -14,7 +14,6 @@ const birthdaySchema = z.object({
   sucursalId: z.string().min(1, 'Selecciona una sucursal'),
   mensaje: z.string().min(10, 'El mensaje debe tener al menos 10 caracteres').max(500),
   emoji: z.string().max(20).optional(),
-  foto: z.string().max(500).optional(),
   avisoDias: z.coerce.number().min(0).max(30).optional(),
 })
 
@@ -31,7 +30,6 @@ interface BirthdayModalProps {
     sucursalId: string
     mensaje: string
     emoji?: string
-    foto?: string
     avisoDias?: number
   } | null
   isLoading?: boolean
@@ -60,44 +58,27 @@ export function BirthdayModal({
       sucursalId: '',
       mensaje: '',
       emoji: '',
-      foto: '',
       avisoDias: 1,
     },
   })
 
-  const [fotoStatus, setFotoStatus] = useState<'idle' | 'subiendo' | 'error' | 'listo'>('idle')
-  const [fotoError, setFotoError] = useState<string>('')
-  // Foto guardada en estado local (NO depende del hook): la añadimos manualmente al enviar.
-  const [fotoUrl, setFotoUrl] = useState<string>('')
-  const fotoInputRef = useRef<HTMLInputElement | null>(null)
-  // Diagnóstico visible para depurar la subida en el cel (se quita al final)
-  const [fotoDiag, setFotoDiag] = useState<string>('')
-  // Deduplicación de subida (evita reenviar el mismo archivo). DEBE ir antes del return null.
-  const ultimaFirma = useRef('')
-
   useEffect(() => {
     if (isOpen && initialData) {
-      setFotoUrl(initialData.foto || '')
-      setFotoStatus('idle')
       reset({
         nombre: initialData.nombre,
         fecha: initialData.fecha,
         sucursalId: initialData.sucursalId,
         mensaje: initialData.mensaje,
         emoji: initialData.emoji || '',
-        foto: initialData.foto || '',
         avisoDias: initialData.avisoDias ?? 1,
       })
     } else if (isOpen && !initialData) {
-      setFotoUrl('')
-      setFotoStatus('idle')
       reset({
         nombre: '',
         fecha: new Date().toISOString().split('T')[0],
         sucursalId: sucursales[0]?.id || '',
         mensaje: '',
         emoji: '',
-        foto: '',
         avisoDias: 1,
       })
     }
@@ -112,77 +93,11 @@ export function BirthdayModal({
     }
   }, [isOpen])
 
-  // POLLING de seguridad: Chrome Android a veces NO dispara onChange al elegir el archivo.
-  // Revisamos directo si el archivo llegó al input (chequeo cada 400ms) y lo subimos.
-  useEffect(() => {
-    if (!isOpen) return
-    const timer = setInterval(() => {
-      if (fotoInputRef.current) {
-        const f = fotoInputRef.current.files?.[0]
-        if (f) subirFoto(f)
-      }
-    }, 400)
-    return () => clearInterval(timer)
-  }, [isOpen])
-
   if (!isOpen) return null
 
   const handleSubmitForm = async (data: BirthdayFormData) => {
-    // La foto va por estado local (no por el hook) → la añadimos manualmente.
-    await onSubmit({ ...data, foto: fotoUrl || undefined })
+    await onSubmit(data)
     onClose()
-  }
-
-  // Sube la foto elegida. onChange y onInput llaman aquí. Mejor visibilidad de errores.
-  const subirFoto = async (archivo?: File | null) => {
-    if (!archivo) { setFotoDiag('1.sin-archivo'); return }
-    setFotoDiag(`2.archivo:${archivo.name} ${Math.round(archivo.size / 1024)}KB`)
-    if (archivo.size > 8 * 1024 * 1024) {
-      setFotoError('La imagen supera los 8 MB. Sube una más ligera.')
-      setFotoStatus('error')
-      return
-    }
-    // No re-subir el mismo archivo (bug de Chrome: onChange puede disparar 2 veces al perder foco)
-    const firma = `${archivo.name}:${archivo.size}:${archivo.lastModified}`
-    if (ultimaFirma.current === firma) return
-    ultimaFirma.current = firma
-    setFotoStatus('subiendo')
-    setFotoError('')
-    const fd = new FormData()
-    fd.append('file', archivo)
-    try {
-      const res = await fetch('/api/upload', { method: 'POST', body: fd })
-      setFotoDiag(`3.http:${res.status}`)
-      if (res.status === 401) {
-        setFotoError('Tu sesión venció. Vuelve a iniciar sesión y repite la subida.')
-        setFotoStatus('error')
-        setTimeout(() => { window.location.href = '/login' }, 1800)
-        return
-      }
-      if (!res.ok) {
-        let msg = 'No se pudo subir la foto. Intenta de nuevo.'
-        try { const d = await res.json(); if (d.error) msg = d.error } catch {}
-        setFotoError(msg)
-        setFotoStatus('error')
-        return
-      }
-      const d = await res.json()
-      setFotoUrl(d.url)
-      setFotoStatus('listo')
-      setFotoDiag('4.éxito')
-    } catch (err) {
-      setFotoDiag(`5.error:${err}`)
-      setFotoError('Error de conexión al subir la foto. Revisa tu internet e intenta de nuevo.')
-      setFotoStatus('error')
-    }
-  }
-
-  // Lee el input file y sube su archivo. La usan el polling y los eventos.
-  const leerArchivoDelInput = () => {
-    if (fotoInputRef.current) {
-      const f = fotoInputRef.current.files?.[0]
-      if (f) subirFoto(f)
-    }
   }
 
   return (
@@ -310,87 +225,6 @@ export function BirthdayModal({
                   autoComplete="off"
                 />
                 <p className="mt-1 text-xs text-neutral-500">Aparece como el símbolo principal de la tarjeta</p>
-              </div>
-
-              {/* Foto: subir desde el dispositivo (se guarda en el servidor) */}
-              <div>
-                <label className="label flex items-center gap-1.5">
-                  <Image className="w-4 h-4 text-primary-500" />
-                  Foto del cumpleañero
-                </label>
-                <input
-                  id="foto-file"
-                  ref={fotoInputRef}
-                  type="file"
-                  className="input-file"
-                  onClick={(e) => { e.currentTarget.value = '' }}
-                  onChangeCapture={async (e) => { await leerArchivoDelInput() }}
-                  onChange={async (e) => { await leerArchivoDelInput() }}
-                  onInput={async (e) => { await leerArchivoDelInput() }}
-                />
-                {/* Botón explícito para abrir el selector (label nativo que dispara el input oculto) */}
-                <label
-                  htmlFor="foto-file"
-                  className="btn-secondary w-full mt-1 flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <Image className="w-4 h-4" />
-                  {fotoUrl ? 'Cambiar foto' : 'Subir foto'}
-                </label>
-                <p className="mt-1 text-xs text-neutral-500">
-                  Toca el botón o el campo para elegir una foto (JPG, PNG, WEBP o GIF, máx 8 MB)
-                </p>
-
-                {/* DIAGNÓSTICO (temporal): para ver en el cel qué pasa al elegir */}
-                {fotoDiag && (
-                  <p className="mt-1 text-[11px] font-mono text-neutral-500 bg-neutral-50 border border-neutral-200 rounded px-1.5 py-0.5" dir="auto">
-                    📡 {fotoDiag}
-                  </p>
-                )}
-
-                {/* Estado de la subida */}
-                {fotoStatus === 'subiendo' && (
-                  <p className="mt-2 text-sm text-primary-600 flex items-center gap-1.5">
-                    <Loader2 className="w-4 h-4 animate-spin" /> Subiendo foto…
-                  </p>
-                )}
-                {fotoStatus === 'listo' && (
-                  <p className="mt-2 text-sm text-green-600 flex items-center gap-1.5">
-                    <span>✓</span> Foto subida correctamente
-                  </p>
-                )}
-                {fotoStatus === 'error' && (
-                  <p className="mt-2 text-sm text-red-600 flex items-center gap-1.5">
-                    <X className="w-4 h-4" /> {fotoError}
-                  </p>
-                )}
-
-                {/* Preview + botón quitar */}
-                {(fotoUrl) && (
-                  <div className="mt-3 flex items-center gap-3">
-                    <img
-                      src={fotoUrl}
-                      alt="Vista previa de la foto"
-                      className="w-16 h-16 rounded-full object-cover border-2"
-                      style={{ borderColor: '#e8792e' }}
-                    />
-                    <span className="text-xs text-neutral-500">Vista previa</span>
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        const fotoborrar = fotoUrl
-                        setFotoUrl('')
-                        setFotoStatus('idle')
-                        if (fotoborrar.startsWith('/api/uploads/')) {
-                          const nombre = fotoborrar.split('/').pop()
-                          await fetch(`/api/uploads/${nombre}`, { method: 'DELETE' })
-                        }
-                      }}
-                      className="btn-danger" aria-label="Quitar foto"
-                    >
-                      🗑️ Quitar foto
-                    </button>
-                  </div>
-                )}
               </div>
 
               {/* Anticipación del recordatorio */}
