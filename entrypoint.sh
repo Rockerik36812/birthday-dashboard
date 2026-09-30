@@ -2,7 +2,7 @@
 set -e
 
 # Asegurar permisos del volumen (el vol se monta como root)
-mkdir -p /app/data
+mkdir -p /app/data /app/data/uploads
 chown -R nextjs:nodejs /app/data
 
 # Inyectar valores por defecto si no están en el entorno de Coolify

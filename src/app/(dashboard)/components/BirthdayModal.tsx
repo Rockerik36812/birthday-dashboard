@@ -49,6 +49,7 @@ export function BirthdayModal({
     register,
     handleSubmit,
     reset,
+    watch,
     formState: { errors },
     setValue,
   } = useForm<BirthdayFormData>({
@@ -234,24 +235,68 @@ export function BirthdayModal({
                 <p className="mt-1 text-xs text-neutral-500">Aparece como el símbolo principal de la tarjeta</p>
               </div>
 
-              {/* Foto */}
+              {/* Foto: subir desde el dispositivo (se guarda en el servidor) */}
               <div>
-                <label htmlFor="foto" className="label flex items-center gap-1.5">
+                <label htmlFor="foto-file" className="label flex items-center gap-1.5">
                   <Image className="w-4 h-4 text-primary-500" />
-                  Foto (URL opcional)
+                  Foto del cumpleañero
                 </label>
                 <input
-                  {...register('foto')}
-                  id="foto"
-                  type="url"
-                  maxLength={500}
-                  placeholder="https://... (déjalo vacío si no hay foto)"
-                  className={cn('input')}
-                  autoComplete="off"
+                  id="foto-file"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  className="input-file"
+                  onChange={async (e) => {
+                    const archivo = e.target.files?.[0]
+                    if (!archivo) return
+                    if (archivo.size > 8 * 1024 * 1024) {
+                      alert('La imagen supera los 8 MB. Sube una más ligera.')
+                      e.target.value = ''
+                      return
+                    }
+                    const fd = new FormData()
+                    fd.append('file', archivo)
+                    const res = await fetch('/api/upload', { method: 'POST', body: fd })
+                    if (res.ok) {
+                      const d = await res.json()
+                      setValue('foto', d.url)
+                    } else {
+                      const d = await res.json().catch(() => ({}))
+                      alert(d.error || 'No se pudo subir la foto. Intenta de nuevo.')
+                      e.target.value = ''
+                    }
+                  }}
                 />
                 <p className="mt-1 text-xs text-neutral-500">
-                  Si agregas una URL de imagen, se muestra redonda en la tarjeta
+                  Sube una foto desde tu celular/computadora (JPG, PNG, WEBP o GIF, máx 8 MB)
                 </p>
+
+                {/* Preview + botón quitar */}
+                {(watch('foto') as string) && (
+                  <div className="mt-3 flex items-center gap-3">
+                    <img
+                      src={(watch('foto') as string)}
+                      alt="Vista previa de la foto"
+                      className="w-16 h-16 rounded-full object-cover border-2"
+                      style={{ borderColor: '#e8792e' }}
+                    />
+                    <span className="text-xs text-neutral-500">Vista previa</span>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const fotoborrar = watch('foto') as string
+                        setValue('foto', '')
+                        if (fotoborrar.startsWith('/api/uploads/')) {
+                          const nombre = fotoborrar.split('/').pop()
+                          await fetch(`/api/uploads/${nombre}`, { method: 'DELETE' })
+                        }
+                      }}
+                      className="btn-danger" aria-label="Quitar foto"
+                    >
+                      🗑️ Quitar foto
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Anticipación del recordatorio */}
