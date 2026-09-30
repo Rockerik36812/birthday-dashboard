@@ -10,7 +10,6 @@ import { getSucursalColor, hexToRgba } from '@/lib/colors'
 import { format, parseBirthdayLocal, getAgeInYear } from '@/lib/utils'
 import { es } from 'date-fns/locale'
 import { Gift, MapPin, MessageSquare, Heart, Sparkles, Calendar, Image as ImageIcon } from 'lucide-react'
-import { isPremiumFeatures } from '@/lib/utils'
 
 interface WhatsAppShareProps {
   cumple?: CumpleanosConEdad | null
@@ -28,9 +27,8 @@ export function WhatsAppShare({ cumple, cumpleList, mode, month, onClose }: What
   const [shareMethod, setShareMethod] = useState<'whatsapp' | 'descarga' | null>(null)
   const cardRef = useRef<HTMLDivElement>(null)
   const captureRef = useRef<HTMLDivElement>(null)
-  const premium = isPremiumFeatures()
   // Emoji personalizado o el regalo por defecto
-  const themeEmoji = (premium && cumple?.emoji) ? cumple.emoji : null
+  const themeEmoji = cumple?.emoji || null
   // Mes mostrado (para modo grupal)
   const refMonth = month ?? new Date()
 
@@ -184,7 +182,7 @@ export function WhatsAppShare({ cumple, cumpleList, mode, month, onClose }: What
           <div className="relative z-10 text-center">
             {/* Header festivo */}
             <div className="mb-6">
-              {premium && cumple.foto ? (
+              {cumple.foto ? (
                 <div className="w-24 h-24 rounded-full mb-4 overflow-hidden border-4 shadow-lg mx-auto" style={{ borderColor: sucursalColor }}>
                   <img
                     src={cumple.foto}

@@ -1,6 +1,5 @@
 import { prisma } from '@/lib/prisma'
 import webpush from 'web-push'
-import { isPremiumFeatures } from '@/lib/utils'
 
 /**
  * Lógica de recordatorios de cumpleaños.
@@ -8,7 +7,7 @@ import { isPremiumFeatures } from '@/lib/utils'
  * Dos niveles:
  *  - "hoy":    alerta fuerte el mero día (9:00 AM y 12:00 PM)
  *  - "mañana": aviso un día antes (9:00 AM y 12:00 PM)
- *  - "upcoming": (si está PREMIUM_FEATURES) aviso con anticipación
+ *  - "upcoming": aviso con anticipación
  *    configurable por cumpleaño (campo avisoDias: cuántos días antes avisar).
  *
  * Se dispara desde el endpoint /api/reminders cuando un cron llama con el
@@ -109,15 +108,13 @@ export async function sendPushNotifications(
 }
 
 /**
- * Calcula los cumpleaños de hoy, de mañana y (si PREMIUM_FEATURES) los que caen
- * dentro de la anticipación configurable (`avisoDias` días antes). Devuelve
- * nombres.
+ * Calcula los cumpleaños de hoy, de mañana y los que caen dentro de la
+ * anticipación configurable (`avisoDias` días antes). Devuelve nombres.
  */
 export async function computeReminders(): Promise<ReminderSummary> {
   const now = new Date()
   const todayMd = getMD(now)
   const tomorrowMd = getMD(addDays(now, 1))
-  const premium = isPremiumFeatures()
 
   const all = await prisma.cumpleanos.findMany({
     where: { nombre: { not: '' } },
@@ -132,20 +129,18 @@ export async function computeReminders(): Promise<ReminderSummary> {
     .filter((c) => getMD(c.fecha) === tomorrowMd)
     .map((c) => c.nombre)
 
-  // Anticipación configurable (solo en premium): agrupa por días restantes.
+  // Anticipación configurable: agrupa por días restantes.
   // avisoDias=1 equivale a mañana (ya cubierto arriba); >1 es aviso temprano.
   let birthdaysUpcoming: { nombre: string; dias: number }[] = []
-  if (premium) {
-    // Para cada cumpleaños con avisoDias>1, avisa cuando estemos exactamente
-    // a esa distancia (N días antes).
-    for (const c of all) {
-      const dias = Math.max(0, c.avisoDias ?? 1)
-      if (dias <= 1) continue
-      if (birthdaysToday.includes(c.nombre) || birthdaysTomorrow.includes(c.nombre)) continue
-      const targetMd = getMD(addDays(c.fecha, -dias))
-      if (targetMd === todayMd) {
-        birthdaysUpcoming.push({ nombre: c.nombre, dias })
-      }
+  // Para cada cumpleaños con avisoDias>1, avisa cuando estemos exactamente
+  // a esa distancia (N días antes).
+  for (const c of all) {
+    const dias = Math.max(0, c.avisoDias ?? 1)
+    if (dias <= 1) continue
+    if (birthdaysToday.includes(c.nombre) || birthdaysTomorrow.includes(c.nombre)) continue
+    const targetMd = getMD(addDays(c.fecha, -dias))
+    if (targetMd === todayMd) {
+      birthdaysUpcoming.push({ nombre: c.nombre, dias })
     }
   }
 

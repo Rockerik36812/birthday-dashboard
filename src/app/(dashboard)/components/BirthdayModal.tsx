@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { X, Calendar, MapPin, MessageSquare, Building2, Gift, Loader2, Image, Bell, Smile } from 'lucide-react'
-import { cn, isPremiumFeatures } from '@/lib/utils'
+import { cn } from '@/lib/utils'
 import { Sucursal } from '@/types'
 
 const birthdaySchema = z.object({
@@ -64,8 +64,6 @@ export function BirthdayModal({
       avisoDias: 1,
     },
   })
-
-  const premium = isPremiumFeatures()
 
   useEffect(() => {
     if (isOpen && initialData) {
@@ -210,10 +208,9 @@ export function BirthdayModal({
             </p>
           </div>
 
-          {/* ==== SÓLO si está PREMIUM_FEATURES: personalización de tarjeta ==== */}
-          {premium && (
-            <>
-              <div className="pt-1 pb-0.5 border-b border-neutral-100">
+          {/* Personalización de la tarjeta (opcional) */}
+          <>
+            <div className="pt-1 pb-0.5 border-b border-neutral-100">
                 <p className="text-xs text-neutral-400 uppercase tracking-wide">✨ Personalización de la tarjeta</p>
               </div>
 
@@ -320,8 +317,7 @@ export function BirthdayModal({
                   Recibes la notificación push con esta anticipación
                 </p>
               </div>
-            </>
-          )}
+          </>
 
           {/* Botones */}
           <div className="flex gap-3 pt-2">
