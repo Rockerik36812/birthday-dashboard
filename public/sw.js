@@ -60,7 +60,7 @@ self.addEventListener('push', (event) => {
     body = 'Prepárate para felicitarlo. 🎉'
   }
 
-  event.waitUntil(self.registration.showNotification('<bdi>' + title + '</bdi>', {
+  event.waitUntil(self.registration.showNotification(title, {
     body: body,
     tag: 'birthday-reminder',
     renotify: true,
