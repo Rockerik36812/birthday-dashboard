@@ -253,14 +253,24 @@ export function BirthdayModal({
                     }
                     const fd = new FormData()
                     fd.append('file', archivo)
-                    const res = await fetch('/api/upload', { method: 'POST', body: fd })
-                    if (res.ok) {
+                    try {
+                      const res = await fetch('/api/upload', { method: 'POST', body: fd })
+                      if (res.status === 401) {
+                        alert('Tu sesión venció. Vuelve a iniciar sesión y repite la subida.')
+                        window.location.href = '/login'
+                        return
+                      }
+                      if (!res.ok) {
+                        let msg = 'No se pudo subir la foto. Intenta de nuevo.'
+                        try { const d = await res.json(); if (d.error) msg = d.error } catch {}
+                        alert(msg)
+                        e.target.value = ''
+                        return
+                      }
                       const d = await res.json()
                       setValue('foto', d.url)
-                    } else {
-                      const d = await res.json().catch(() => ({}))
-                      alert(d.error || 'No se pudo subir la foto. Intenta de nuevo.')
-                      e.target.value = ''
+                    } catch (err) {
+                      alert('Error de conexión al subir la foto. Revisa tu internet e intenta de nuevo.')
                     }
                   }}
                 />

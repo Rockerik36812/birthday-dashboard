@@ -39,6 +39,8 @@ export function middleware(req: NextRequest) {
                   pathname.startsWith('/api/logout') ||
                   pathname.startsWith('/api/cumpleanos') ||
                   pathname.startsWith('/api/sucursales') ||
+                  pathname.startsWith('/api/upload') ||
+                  pathname.startsWith('/api/uploads/') ||
                   pathname.startsWith('/api/admin/')
 
   // Recordatorios: el cron los llama SIN sesión (usan ?secret=)
