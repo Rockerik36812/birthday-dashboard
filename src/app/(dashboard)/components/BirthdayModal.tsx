@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -69,6 +69,7 @@ export function BirthdayModal({
   const [fotoError, setFotoError] = useState<string>('')
   // Foto guardada en estado local (NO depende del hook): la añadimos manualmente al enviar.
   const [fotoUrl, setFotoUrl] = useState<string>('')
+  const fotoInputRef = useRef<HTMLInputElement | null>(null)
 
   useEffect(() => {
     if (isOpen && initialData) {
@@ -244,16 +245,16 @@ export function BirthdayModal({
 
               {/* Foto: subir desde el dispositivo (se guarda en el servidor) */}
               <div>
-                <label htmlFor="foto-file" className="label flex items-center gap-1.5">
+                <label className="label flex items-center gap-1.5">
                   <Image className="w-4 h-4 text-primary-500" />
                   Foto del cumpleañero
                 </label>
                 <input
                   id="foto-file"
+                  ref={fotoInputRef}
                   type="file"
                   accept="image/*"
                   className="input-file"
-                  disabled={fotoStatus === 'subiendo'}
                   onChange={async (e) => {
                     const archivo = e.target.files?.[0]
                     if (!archivo) return
@@ -293,8 +294,17 @@ export function BirthdayModal({
                     }
                   }}
                 />
+                {/* Botón explícito para abrir el selector (fallback del selector táctil de algunos cels) */}
+                <button
+                  type="button"
+                  onClick={() => fotoInputRef.current?.click()}
+                  className="btn-secondary w-full mt-1 flex items-center justify-center gap-2"
+                >
+                  <Image className="w-4 h-4" />
+                  {fotoUrl ? 'Cambiar foto' : 'Subir foto'}
+                </button>
                 <p className="mt-1 text-xs text-neutral-500">
-                  Toca para elegir una foto de tu celular o computadora (JPG, PNG, WEBP o GIF, máx 8 MB)
+                  Toca el botón o el campo para elegir una foto (JPG, PNG, WEBP o GIF, máx 8 MB)
                 </p>
 
                 {/* Estado de la subida */}
