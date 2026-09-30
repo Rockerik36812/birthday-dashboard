@@ -253,8 +253,8 @@ export function BirthdayModal({
                   id="foto-file"
                   ref={fotoInputRef}
                   type="file"
-                  accept="image/*"
                   className="input-file"
+                  onClick={(e) => { e.currentTarget.value = '' }}
                   onChange={async (e) => {
                     const archivo = e.target.files?.[0]
                     if (!archivo) return
