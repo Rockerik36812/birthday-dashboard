@@ -57,7 +57,7 @@
   }
 
   .input-file {
-    @apply w-full px-4 py-3 rounded-xl border border-neutral-200 bg-white text-neutral-700 text-sm transition-all duration-200 focus:border-primary-400 focus:ring-2 focus:ring-primary-100 focus:outline-none file:mr-3 file:py-1;
+    @apply sr-only;
   }
 
   .label {

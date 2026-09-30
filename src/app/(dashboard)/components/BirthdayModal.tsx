@@ -294,15 +294,14 @@ export function BirthdayModal({
                     }
                   }}
                 />
-                {/* Botón explícito para abrir el selector (fallback del selector táctil de algunos cels) */}
-                <button
-                  type="button"
-                  onClick={() => fotoInputRef.current?.click()}
-                  className="btn-secondary w-full mt-1 flex items-center justify-center gap-2"
+                {/* Botón explícito para abrir el selector (label nativo que dispara el input oculto) */}
+                <label
+                  htmlFor="foto-file"
+                  className="btn-secondary w-full mt-1 flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <Image className="w-4 h-4" />
                   {fotoUrl ? 'Cambiar foto' : 'Subir foto'}
-                </button>
+                </label>
                 <p className="mt-1 text-xs text-neutral-500">
                   Toca el botón o el campo para elegir una foto (JPG, PNG, WEBP o GIF, máx 8 MB)
                 </p>
