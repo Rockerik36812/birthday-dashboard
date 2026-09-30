@@ -67,9 +67,13 @@ export function BirthdayModal({
 
   const [fotoStatus, setFotoStatus] = useState<'idle' | 'subiendo' | 'error' | 'listo'>('idle')
   const [fotoError, setFotoError] = useState<string>('')
+  // Foto guardada en estado local (NO depende del hook): la añadimos manualmente al enviar.
+  const [fotoUrl, setFotoUrl] = useState<string>('')
 
   useEffect(() => {
     if (isOpen && initialData) {
+      setFotoUrl(initialData.foto || '')
+      setFotoStatus('idle')
       reset({
         nombre: initialData.nombre,
         fecha: initialData.fecha,
@@ -80,6 +84,8 @@ export function BirthdayModal({
         avisoDias: initialData.avisoDias ?? 1,
       })
     } else if (isOpen && !initialData) {
+      setFotoUrl('')
+      setFotoStatus('idle')
       reset({
         nombre: '',
         fecha: new Date().toISOString().split('T')[0],
@@ -104,7 +110,8 @@ export function BirthdayModal({
   if (!isOpen) return null
 
   const handleSubmitForm = async (data: BirthdayFormData) => {
-    await onSubmit(data)
+    // La foto va por estado local (no por el hook) → la añadimos manualmente.
+    await onSubmit({ ...data, foto: fotoUrl || undefined })
     onClose()
   }
 
@@ -277,7 +284,7 @@ export function BirthdayModal({
                         return
                       }
                       const d = await res.json()
-                      setValue('foto', d.url)
+                      setFotoUrl(d.url)
                       e.target.value = ''
                       setFotoStatus('listo')
                     } catch (err) {
@@ -308,10 +315,10 @@ export function BirthdayModal({
                 )}
 
                 {/* Preview + botón quitar */}
-                {(watch('foto') as string) && (
+                {(fotoUrl) && (
                   <div className="mt-3 flex items-center gap-3">
                     <img
-                      src={(watch('foto') as string)}
+                      src={fotoUrl}
                       alt="Vista previa de la foto"
                       className="w-16 h-16 rounded-full object-cover border-2"
                       style={{ borderColor: '#e8792e' }}
@@ -320,8 +327,8 @@ export function BirthdayModal({
                     <button
                       type="button"
                       onClick={async () => {
-                        const fotoborrar = watch('foto') as string
-                        setValue('foto', '')
+                        const fotoborrar = fotoUrl
+                        setFotoUrl('')
                         setFotoStatus('idle')
                         if (fotoborrar.startsWith('/api/uploads/')) {
                           const nombre = fotoborrar.split('/').pop()
