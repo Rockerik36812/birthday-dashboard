@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -64,6 +64,9 @@ export function BirthdayModal({
       avisoDias: 1,
     },
   })
+
+  const [fotoStatus, setFotoStatus] = useState<'idle' | 'subiendo' | 'error' | 'listo'>('idle')
+  const [fotoError, setFotoError] = useState<string>('')
 
   useEffect(() => {
     if (isOpen && initialData) {
@@ -241,42 +244,68 @@ export function BirthdayModal({
                 <input
                   id="foto-file"
                   type="file"
-                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  accept="image/*"
                   className="input-file"
+                  disabled={fotoStatus === 'subiendo'}
                   onChange={async (e) => {
                     const archivo = e.target.files?.[0]
                     if (!archivo) return
                     if (archivo.size > 8 * 1024 * 1024) {
-                      alert('La imagen supera los 8 MB. Sube una más ligera.')
+                      setFotoError('La imagen supera los 8 MB. Sube una más ligera.')
+                      setFotoStatus('error')
                       e.target.value = ''
                       return
                     }
+                    setFotoStatus('subiendo')
+                    setFotoError('')
                     const fd = new FormData()
                     fd.append('file', archivo)
                     try {
                       const res = await fetch('/api/upload', { method: 'POST', body: fd })
                       if (res.status === 401) {
-                        alert('Tu sesión venció. Vuelve a iniciar sesión y repite la subida.')
-                        window.location.href = '/login'
+                        setFotoError('Tu sesión venció. Vuelve a iniciar sesión y repite la subida.')
+                        setFotoStatus('error')
+                        setTimeout(() => { window.location.href = '/login' }, 1800)
                         return
                       }
                       if (!res.ok) {
                         let msg = 'No se pudo subir la foto. Intenta de nuevo.'
                         try { const d = await res.json(); if (d.error) msg = d.error } catch {}
-                        alert(msg)
+                        setFotoError(msg)
+                        setFotoStatus('error')
                         e.target.value = ''
                         return
                       }
                       const d = await res.json()
                       setValue('foto', d.url)
+                      e.target.value = ''
+                      setFotoStatus('listo')
                     } catch (err) {
-                      alert('Error de conexión al subir la foto. Revisa tu internet e intenta de nuevo.')
+                      setFotoError('Error de conexión al subir la foto. Revisa tu internet e intenta de nuevo.')
+                      setFotoStatus('error')
                     }
                   }}
                 />
                 <p className="mt-1 text-xs text-neutral-500">
-                  Sube una foto desde tu celular/computadora (JPG, PNG, WEBP o GIF, máx 8 MB)
+                  Toca para elegir una foto de tu celular o computadora (JPG, PNG, WEBP o GIF, máx 8 MB)
                 </p>
+
+                {/* Estado de la subida */}
+                {fotoStatus === 'subiendo' && (
+                  <p className="mt-2 text-sm text-primary-600 flex items-center gap-1.5">
+                    <Loader2 className="w-4 h-4 animate-spin" /> Subiendo foto…
+                  </p>
+                )}
+                {fotoStatus === 'listo' && (
+                  <p className="mt-2 text-sm text-green-600 flex items-center gap-1.5">
+                    <span>✓</span> Foto subida correctamente
+                  </p>
+                )}
+                {fotoStatus === 'error' && (
+                  <p className="mt-2 text-sm text-red-600 flex items-center gap-1.5">
+                    <X className="w-4 h-4" /> {fotoError}
+                  </p>
+                )}
 
                 {/* Preview + botón quitar */}
                 {(watch('foto') as string) && (
@@ -293,6 +322,7 @@ export function BirthdayModal({
                       onClick={async () => {
                         const fotoborrar = watch('foto') as string
                         setValue('foto', '')
+                        setFotoStatus('idle')
                         if (fotoborrar.startsWith('/api/uploads/')) {
                           const nombre = fotoborrar.split('/').pop()
                           await fetch(`/api/uploads/${nombre}`, { method: 'DELETE' })
