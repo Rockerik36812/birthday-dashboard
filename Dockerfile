@@ -4,8 +4,8 @@
 # ===== STAGE 1: Base =====
 FROM node:20-alpine AS base
 
-# Instalar dependencias del sistema necesarias para Prisma, Sharp y su-exec
-RUN apk add --no-cache libc6-compat openssl su-exec
+# Instalar dependencias del sistema necesarias para Prisma, Sharp, su-exec y tzdata/zona horaria de México
+RUN apk add --no-cache libc6-compat openssl su-exec tzdata
 
 WORKDIR /app
 
@@ -64,7 +64,8 @@ COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma ./node_modul
 
 # Entrypoint para inicializar BD (corre como root para chown, luego su-exec a nextjs)
 COPY --chown=nextjs:nodejs entrypoint.sh /app/entrypoint.sh
-RUN chmod +x /app/entrypoint.sh
+COPY --chown=nextjs:nodejs scripts/birthday-reminders-internal.sh /app/scripts/birthday-reminders-internal.sh
+RUN chmod +x /app/entrypoint.sh /app/scripts/birthday-reminders-internal.sh
 
 # Volumen para base de datos SQLite
 VOLUME ["/app/data"]
@@ -73,5 +74,6 @@ EXPOSE 3000
 
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
+ENV TZ="America/Mexico_City"
 
 CMD ["sh", "/app/entrypoint.sh"]
