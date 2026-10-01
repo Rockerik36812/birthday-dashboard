@@ -67,7 +67,7 @@ export async function sendPushNotifications(
 
   let ok = 0
   let fail = 0
-  const payload = JSON.stringify({ kind, nombres, dias, icon: '/favicon.svg' })
+  const payload = JSON.stringify({ kind, nombres, dias, icon: '/icons/icon-192x192.png' })
 
   for (const sub of subs) {
     try {

@@ -6,7 +6,7 @@
  *     - kind == "tomorrow" → aviso (un día antes) 🔔
  * NO intercepta requests: la app funciona en línea contra la BD.
  */
-const SW_VERSION = 'v5' // bump al cambiar el SW para forzar su actualizacion
+const SW_VERSION = 'v6' // bump al cambiar el SW para forzar su actualizacion
 
 self.addEventListener('install', () => {
   self.skipWaiting()
@@ -47,8 +47,8 @@ self.addEventListener('push', (event) => {
   const nombres = Array.isArray(data.nombres) ? data.nombres : []
   const lista = nombres.join(', ')
   const dias = parseInt((data.dias ?? '').toString(), 10)
-  const icon = data.icon || '/favicon.svg'
-  const badge = '/favicon.svg'
+  const icon = data.icon || '/icons/icon-192x192.png'
+  const badge = '/icons/icon-192x192.png'
 
   let title, body
   if (esHoy) {
