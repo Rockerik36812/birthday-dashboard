@@ -199,9 +199,9 @@ export function WhatsAppShare({ cumple, cumpleList, mode, month, onClose }: What
 
             {/* Sucursal */}
             {cumple.sucursal && (
-              <div className="flex items-center justify-center gap-2 mb-4" style={{ color: sucursalColor }}>
-                <MapPin className="w-5 h-5" />
-                <span className="font-medium">{cumple.sucursal.nombre}</span>
+              <div className="flex items-center justify-center gap-1.5 mb-4" style={{ color: sucursalColor }}>
+                <MapPin className="w-5 h-5 shrink-0" />
+                <span className="font-medium leading-tight">{cumple.sucursal.nombre}</span>
               </div>
             )}
 
@@ -289,8 +289,8 @@ export function WhatsAppShare({ cumple, cumpleList, mode, month, onClose }: What
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-neutral-900 leading-snug break-words">{c.nombre}</p>
                   <p className="text-xs text-neutral-500 flex items-center gap-1">
-                    <MapPin className="w-3 h-3" />
-                    {c.sucursal?.nombre}
+                    <MapPin className="w-3 h-3 shrink-0" />
+                    <span className="leading-tight">{c.sucursal?.nombre}</span>
                   </p>
                 </div>
                 <span className="text-sm font-bold" style={{ color: c.sucursal?.color || firstColor }}>
@@ -364,19 +364,17 @@ export function WhatsAppShare({ cumple, cumpleList, mode, month, onClose }: What
           </button>
         </div>
 
-        <p className="px-4 pb-4 text-center text-xs text-neutral-500">
-          {isGenerating || isSharing
-            ? 'Generando la imagen...'
-            : shareSuccess
-              ? shareMethod === 'descarga'
+        {(isGenerating || isSharing || shareSuccess) && (
+          <p className="px-4 pb-4 text-center text-xs text-neutral-500">
+            {isGenerating || isSharing
+              ? 'Generando la imagen...'
+              : shareMethod === 'descarga'
                 ? 'Imagen descargada (y texto copiado). Adjúntala en el chat de WhatsApp.'
                 : isMobile
                   ? 'Imagen lista. Elige WhatsApp en la hoja de compartir para enviarla.'
-                  : 'Se abrió WhatsApp Web. Descarga la imagen y adjúntala en el chat para enviarla.'
-              : mode === 'individual'
-                ? 'La tarjeta se comparte como imagen (con fondo blanco) para enviarla por WhatsApp'
-                : 'Se comparte la tarjeta grupal como imagen para enviarla por WhatsApp'}
-        </p>
+                  : 'Se abrió WhatsApp Web. Descarga la imagen y adjúntala en el chat para enviarla.'}
+          </p>
+        )}
       </div>
     </div>
   )
