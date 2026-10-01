@@ -606,7 +606,7 @@ function Dashboard() {
             </label>
             <select
               value={selectedSucursal || 'all'}
-              onChange={(e) => setSelectedSucursal(e.target.value || null)}
+              onChange={(e) => setSelectedSucursal(e.target.value === 'all' ? null : e.target.value)}
               className="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm font-medium text-neutral-700 focus:border-primary-400 focus:ring-2 focus:ring-primary-100 appearance-none cursor-pointer sm:min-w-[200px]"
             >
               <option value="all">🏢 Todas las sucursales ({cumpleanos.length})</option>
