@@ -288,7 +288,7 @@ export function WhatsAppShare({ cumple, cumpleList, mode, month, onClose }: What
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-neutral-900 leading-snug break-words">{c.nombre}</p>
-                  <p className="text-xs text-neutral-500 flex items-center gap-1">
+                  <p className="text-xs flex items-center gap-1" style={{ color: c.sucursal?.color || firstColor, lineHeight: 1.3 }}>
                     <MapPin className="w-3 h-3 shrink-0" />
                     <span style={{ lineHeight: 1.3, display: 'inline-block', verticalAlign: 'middle' }}>{c.sucursal?.nombre}</span>
                   </p>
