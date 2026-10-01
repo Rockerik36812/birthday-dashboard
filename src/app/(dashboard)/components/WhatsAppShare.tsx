@@ -9,9 +9,8 @@ import { cn } from '@/lib/utils'
 import { getSucursalColor, hexToRgba } from '@/lib/colors'
 import { format, parseBirthdayLocal, getAgeInYear } from '@/lib/utils'
 import { es } from 'date-fns/locale'
-import { Gift, MessageSquare, Heart, Sparkles, Calendar, Image as ImageIcon } from 'lucide-react'
+import { Gift, MapPin, MessageSquare, Heart, Sparkles, Calendar, Image as ImageIcon } from 'lucide-react'
 import { BRAND_FOOTER } from '@/lib/brand'
-import { mapPinPng } from '@/lib/mapPin'
 
 interface WhatsAppShareProps {
   cumple?: CumpleanosConEdad | null
@@ -201,7 +200,7 @@ export function WhatsAppShare({ cumple, cumpleList, mode, month, onClose }: What
             {/* Sucursal */}
             {cumple.sucursal && (
               <div className="flex items-center justify-center gap-1.5 mb-4" style={{ color: sucursalColor, lineHeight: 1.3 }}>
-                <img src={mapPinPng(sucursalColor, 20)} alt="" width="20" height="20" style={{ display: 'inline-block', verticalAlign: 'middle' }} />
+                <MapPin className="w-5 h-5 shrink-0" />
                 <span style={{ lineHeight: 1.3, display: 'inline-block', verticalAlign: 'middle' }}>{cumple.sucursal.nombre}</span>
               </div>
             )}
@@ -290,7 +289,7 @@ export function WhatsAppShare({ cumple, cumpleList, mode, month, onClose }: What
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-neutral-900 leading-snug break-words">{c.nombre}</p>
                   <p className="text-xs text-neutral-500 flex items-center gap-1">
-                    <img src={mapPinPng(c.sucursal?.color || firstColor, 14)} alt="" width="14" height="14" style={{ display: 'inline-block', verticalAlign: 'middle' }} />
+                    <MapPin className="w-3 h-3 shrink-0" />
                     <span style={{ lineHeight: 1.3, display: 'inline-block', verticalAlign: 'middle' }}>{c.sucursal?.nombre}</span>
                   </p>
                 </div>
