@@ -6,7 +6,7 @@
  *     - kind == "tomorrow" → aviso (un día antes) 🔔
  * NO intercepta requests: la app funciona en línea contra la BD.
  */
-const SW_VERSION = 'v3' // bump al cambiar el SW para forzar su actualizacion
+const SW_VERSION = 'v4' // bump al cambiar el SW para forzar su actualizacion
 
 self.addEventListener('install', () => {
   self.skipWaiting()
@@ -62,6 +62,8 @@ self.addEventListener('push', (event) => {
 
   event.waitUntil(self.registration.showNotification(title, {
     body: body,
+    icon: '/favicon.svg',
+    badge: '/favicon.svg',
     tag: 'birthday-reminder',
     renotify: true,
     requireInteraction: esHoy,
