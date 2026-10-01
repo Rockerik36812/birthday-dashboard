@@ -25,17 +25,25 @@ export interface ReminderSummary {
   subscribers: number
 }
 
-function pad(n: number): string {
-  return n < 10 ? `0${n}` : `${n}`
-}
+// Zona horaria fija para los recordatorios: horario de México (sin importar el TZ del contenedor,
+// que Coolify corre en UTC). Así "hoy/mañana" siempre se calcula en hora mexicana.
+const BIRTHDAY_TZ = 'America/Mexico_City'
 
 export function getMD(d: Date): string {
-  return `${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+  // Intl en zona México devuelve YYYY-MM-DD independiente del TZ del proceso.
+  const iso = new Intl.DateTimeFormat('en-CA', {
+    timeZone: BIRTHDAY_TZ,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(d) // p.ej. "2026-09-30"
+  return iso.slice(5) // "09-30"
 }
 
 export function addDays(d: Date, days: number): Date {
+  // Sumamos días en UTC y luego getMD lo traduce a zona México.
   const cp = new Date(d)
-  cp.setDate(cp.getDate() + days)
+  cp.setUTCDate(cp.getUTCDate() + days)
   return cp
 }
 
