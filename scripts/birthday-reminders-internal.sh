@@ -7,7 +7,15 @@
 URL="${BD_R_URL:-${BD_REMINDER_URL:-${NEXTAUTH_URL:-http://localhost:3000}/api/reminders}}"
 SECRET="${BD_R_SECRET:-${BD_REMINDER_SECRET:-${PUSH_WEBHOOK_SECRET:-}}}"
 
-CODE=$(curl -s -o /tmp/bd-reminders-out.txt -w "%{http_code}" -m 30 "$URL?secret=$SECRET")
+# la imagen final (Alpine runner) solo trae busybox-wget, no curl
+if command -v curl >/dev/null 2>&1; then
+  CODE=$(curl -s -o /tmp/bd-reminders-out.txt -w "%{http_code}" -m 30 "$URL?secret=$SECRET")
+else
+  # busybox wget: exit 0 = ok; usa --spider? no. Capturamos salida y http_code via -S a stderr
+  wget -q -O /tmp/bd-reminders-out.txt --timeout=30 -S "$URL?secret=$SECRET" 2>/tmp/bd-wget-head.txt
+  CODE=$?
+  [ "$CODE" = "0" ] && CODE="OK"
+fi
 BODY=$(cat /tmp/bd-reminders-out.txt 2>/dev/null)
 
 echo "[birthday-reminders] $(date '+%Y-%m-%d %H:%M %Z') HTTP $CODE :: $BODY"
