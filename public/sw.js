@@ -6,7 +6,7 @@
  *     - kind == "tomorrow" → aviso (un día antes) 🔔
  * NO intercepta requests: la app funciona en línea contra la BD.
  */
-const SW_VERSION = 'v4' // bump al cambiar el SW para forzar su actualizacion
+const SW_VERSION = 'v5' // bump al cambiar el SW para forzar su actualizacion
 
 self.addEventListener('install', () => {
   self.skipWaiting()
@@ -47,6 +47,8 @@ self.addEventListener('push', (event) => {
   const nombres = Array.isArray(data.nombres) ? data.nombres : []
   const lista = nombres.join(', ')
   const dias = parseInt((data.dias ?? '').toString(), 10)
+  const icon = data.icon || '/favicon.svg'
+  const badge = '/favicon.svg'
 
   let title, body
   if (esHoy) {
@@ -62,8 +64,8 @@ self.addEventListener('push', (event) => {
 
   event.waitUntil(self.registration.showNotification(title, {
     body: body,
-    icon: '/favicon.svg',
-    badge: '/favicon.svg',
+    icon: icon,
+    badge: badge,
     tag: 'birthday-reminder',
     renotify: true,
     requireInteraction: esHoy,
