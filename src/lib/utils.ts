@@ -1,6 +1,7 @@
 import { format, formatDistanceToNow, isToday, isTomorrow, isYesterday, startOfDay, endOfDay } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { cn } from './cn'
+import { BRAND_FOOTER } from './brand'
 
 export { cn }
 export { format, formatDistanceToNow, isToday, isTomorrow, isYesterday, startOfDay, endOfDay, es }
@@ -73,7 +74,7 @@ export function isBirthdayInMonth(birthDate: Date | string, monthIndex: number):
 
 export function generateWhatsAppMessage(nombre: string, mensaje: string, edad?: number): string {
   const edadText = edad ? ` (${edad} años)` : ''
-  return `🎂 ¡Feliz Cumpleaños ${nombre}${edadText}!\n\n${mensaje}\n\n— Enviado desde\nBirthday Dashboard ·Bamayacc`
+  return `🎂 ¡Feliz Cumpleaños ${nombre}${edadText}!\n\n${mensaje}\n\n— Enviado desde\n${BRAND_FOOTER}`
 }
 
 export function generateWhatsAppGroupMessage(cumpleaneros: Array<{ nombre: string; mensaje: string; edad?: number }>, month?: Date): string {
@@ -82,5 +83,5 @@ export function generateWhatsAppGroupMessage(cumpleaneros: Array<{ nombre: strin
   const lineas = cumpleaneros.map((c, i) =>
     `${i + 1}. 🎂 ${c.nombre}${c.edad ? ` (${c.edad} años)` : ''}:\n   "${c.mensaje}"`
   ).join('\n\n')
-  return `🎉 Cumpleañeros de ${mes.charAt(0).toUpperCase() + mes.slice(1)}\n\n${lineas}\n\n— Enviado desde\nBirthday Dashboard ·Bamayacc`
+  return `🎉 Cumpleañeros de ${mes.charAt(0).toUpperCase() + mes.slice(1)}\n\n${lineas}\n\n— Enviado desde\n${BRAND_FOOTER}`
 }
