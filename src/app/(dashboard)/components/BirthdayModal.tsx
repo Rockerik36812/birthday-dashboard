@@ -259,12 +259,10 @@ export function BirthdayModal({
               <p className="text-xs text-neutral-400 uppercase tracking-wide flex items-center gap-1.5">
                 <History className="w-3.5 h-3.5" /> Auditoría del registro
               </p>
-              {initialData.creadoPor && (
-                <p className="text-xs text-neutral-600 flex items-center gap-1.5">
-                  <UserPlus className="w-3.5 h-3.5 text-neutral-400" />
-                  Alta: <span className="font-medium text-neutral-800">{initialData.creadoPor}</span>
-                </p>
-              )}
+              <p className="text-xs text-neutral-600 flex items-center gap-1.5">
+                <UserPlus className="w-3.5 h-3.5 text-neutral-400" />
+                Alta: <span className="font-medium text-neutral-800">{initialData.creadoPor || '—'}</span>
+              </p>
               <p className="text-xs text-neutral-600 flex items-center gap-1.5">
                 <PencilLine className="w-3.5 h-3.5 text-neutral-400" />
                 Últ. modificación:{' '}
