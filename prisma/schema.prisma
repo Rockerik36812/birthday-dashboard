@@ -35,6 +35,9 @@ model Cumpleanos {
   sucursal    Sucursal @relation(fields: [sucursalId], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  // --- Trazabilidad: quién dio de alta y quién modificó por última vez ---
+  creadoPor    String? // nombre/username del usuario que creó el registro
+  actualizadoPor String? // nombre/username del usuario de la última modificación
 
   @@index([fecha])
   @@index([sucursalId])

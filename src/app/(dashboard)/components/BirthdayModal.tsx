@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { X, Calendar, MapPin, MessageSquare, Building2, Gift, Loader2, Image, Bell, Smile } from 'lucide-react'
+import { X, Calendar, MapPin, MessageSquare, Building2, Gift, Loader2, Image, Bell, Smile, History, UserPlus, PencilLine } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Sucursal } from '@/types'
 
@@ -31,6 +31,9 @@ interface BirthdayModalProps {
     mensaje: string
     emoji?: string
     avisoDias?: number
+    creadoPor?: string | null
+    actualizadoPor?: string | null
+    createdAt?: string
   } | null
   isLoading?: boolean
 }
@@ -249,6 +252,28 @@ export function BirthdayModal({
                 </p>
               </div>
           </>
+
+          {/* Trazabilidad: quién creó/modificó (solo visible al editar) */}
+          {initialData && (
+            <div className="px-3 py-2.5 rounded-xl bg-neutral-50 border border-neutral-200 space-y-1.5">
+              <p className="text-xs text-neutral-400 uppercase tracking-wide flex items-center gap-1.5">
+                <History className="w-3.5 h-3.5" /> Auditoría del registro
+              </p>
+              {initialData.creadoPor && (
+                <p className="text-xs text-neutral-600 flex items-center gap-1.5">
+                  <UserPlus className="w-3.5 h-3.5 text-neutral-400" />
+                  Alta: <span className="font-medium text-neutral-800">{initialData.creadoPor}</span>
+                </p>
+              )}
+              <p className="text-xs text-neutral-600 flex items-center gap-1.5">
+                <PencilLine className="w-3.5 h-3.5 text-neutral-400" />
+                Últ. modificación:{' '}
+                <span className="font-medium text-neutral-800">
+                  {initialData.actualizadoPor || (initialData.creadoPor ? '—' : '—')}
+                </span>
+              </p>
+            </div>
+          )}
 
           {/* Botones */}
           <div className="flex gap-3 pt-2">

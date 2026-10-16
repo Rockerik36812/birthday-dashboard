@@ -782,6 +782,8 @@ function Dashboard() {
           mensaje: editingCumple.mensaje,
           emoji: editingCumple.emoji || '',
           avisoDias: editingCumple.avisoDias ?? 1,
+          creadoPor: editingCumple.creadoPor,
+          actualizadoPor: editingCumple.actualizadoPor,
         } : null}
         isLoading={isSubmitting}
       />

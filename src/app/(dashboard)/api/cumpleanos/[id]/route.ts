@@ -13,6 +13,19 @@ function isAuthed(req: NextRequest): boolean {
   }
 }
 
+// Obtiene el nombre visible del usuario actual (name, luego username, luego email) desde la cookie
+function getCurrentUserLabel(req: NextRequest): string | null {
+  const token = req.cookies.get('auth-token')?.value
+  if (!token) return null
+  try {
+    const decoded = JSON.parse(atob(token))
+    const label = decoded?.name || decoded?.username || decoded?.email
+    return typeof label === 'string' && label ? label : null
+  } catch {
+    return null
+  }
+}
+
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -40,6 +53,7 @@ export async function PUT(
         // En PUT, emoji se envía tal cual ("" borra el valor, null lo deja igual)
         emoji: typeof emoji === 'string' ? (emoji || null) : undefined,
         avisoDias: typeof avisoDias === 'number' ? Math.max(0, Math.floor(avisoDias)) : undefined,
+        actualizadoPor: getCurrentUserLabel(request),
       },
       include: { sucursal: true },
     })

@@ -19,6 +19,8 @@ export interface Cumpleanos {
   sucursal?: Sucursal
   createdAt: Date
   updatedAt: Date
+  creadoPor?: string | null
+  actualizadoPor?: string | null
 }
 
 export interface CumpleanosConEdad extends Cumpleanos {
