@@ -27,7 +27,7 @@ function FotoCumple({ src, emoji, color }: { src: string; emoji: string | null; 
   if (fallo) {
     return (
       <div className="inline-flex items-center justify-center w-20 h-20 rounded-full mb-4" style={{ backgroundColor: hexToRgba(color, 0.15) }}>
-        <span className="text-4xl">{emoji || '🎁'}</span>
+        <span className="text-4xl">{emoji || ''}</span>
       </div>
     )
   }
@@ -213,7 +213,7 @@ export function WhatsAppShare({ cumple, cumpleList, mode, month, onClose }: What
                 <FotoCumple src={cumple.foto} emoji={themeEmoji} color={sucursalColor} />
               ) : (
                 <div className="inline-flex items-center justify-center w-20 h-20 rounded-full mb-4" style={{ backgroundColor: hexToRgba(sucursalColor, 0.15) }}>
-                  <span className="text-4xl">{themeEmoji || '🎁'}</span>
+                  <span className="text-4xl">{themeEmoji || ''}</span>
                 </div>
               )}
               {esHoy && (
