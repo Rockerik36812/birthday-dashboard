@@ -27,7 +27,7 @@ export function middleware(req: NextRequest) {
   const pathname = req.nextUrl.pathname
 
   // Archivos estáticos públicos: servir sin sesión (manifest, sw, iconos, fonts)
-  const STATIC_EXT = /\.(png|ico|svg|webmanifest|css|js|woff2?)$/
+  const STATIC_EXT = /\.(png|jpe?g|ico|svg|webmanifest|css|js|woff2?)$/
   if (
     pathname === '/site.webmanifest' ||
     pathname === '/sw.js' ||
