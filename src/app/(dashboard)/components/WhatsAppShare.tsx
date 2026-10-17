@@ -20,6 +20,32 @@ interface WhatsAppShareProps {
   onClose: () => void
 }
 
+// Muestra la foto del cumpleañero en redondo. Si la imagen no carga (archivo
+// borrado, red), cae al emoji para no dejar un hueco en la tarjeta.
+function FotoCumple({ src, emoji, color }: { src: string; emoji: string | null; color: string }) {
+  const [fallo, setFallo] = useState(false)
+  if (fallo) {
+    return (
+      <div className="inline-flex items-center justify-center w-20 h-20 rounded-full mb-4" style={{ backgroundColor: hexToRgba(color, 0.15) }}>
+        <span className="text-4xl">{emoji || '🎁'}</span>
+      </div>
+    )
+  }
+  return (
+    <div
+      className="w-24 h-24 rounded-full mb-4 overflow-hidden border-4 shadow-lg mx-auto"
+      style={{ borderColor: color }}
+    >
+      <img
+        src={src}
+        alt=""
+        className="w-full h-full object-cover"
+        onError={() => setFallo(true)}
+      />
+    </div>
+  )
+}
+
 export function WhatsAppShare({ cumple, cumpleList, mode, month, onClose }: WhatsAppShareProps) {
   const [imageBlob, setImageBlob] = useState<Blob | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
@@ -183,9 +209,13 @@ export function WhatsAppShare({ cumple, cumpleList, mode, month, onClose }: What
           <div className="relative z-10 text-center">
             {/* Header festivo */}
             <div className="mb-6">
-              <div className="inline-flex items-center justify-center w-20 h-20 rounded-full mb-4" style={{ backgroundColor: hexToRgba(sucursalColor, 0.15) }}>
-                <span className="text-4xl">{themeEmoji || '🎁'}</span>
-              </div>
+              {cumple.foto ? (
+                <FotoCumple src={cumple.foto} emoji={themeEmoji} color={sucursalColor} />
+              ) : (
+                <div className="inline-flex items-center justify-center w-20 h-20 rounded-full mb-4" style={{ backgroundColor: hexToRgba(sucursalColor, 0.15) }}>
+                  <span className="text-4xl">{themeEmoji || '🎁'}</span>
+                </div>
+              )}
               {esHoy && (
                 <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-3 animate-pulse" style={{ backgroundColor: hexToRgba(sucursalColor, 0.2), color: sucursalColor }}>
                   <Heart className="w-5 h-5" />

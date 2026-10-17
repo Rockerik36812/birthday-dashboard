@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { nombre, fecha, sucursalId, mensaje, emoji, avisoDias } = body
+    const { nombre, fecha, sucursalId, mensaje, emoji, foto, avisoDias } = body
 
     if (!nombre || !fecha || !sucursalId || !mensaje) {
       return NextResponse.json({ error: 'Todos los campos son obligatorios' }, { status: 400 })
@@ -64,6 +64,7 @@ export async function POST(request: NextRequest) {
         sucursalId,
         mensaje,
         emoji: emoji || null,
+        foto: foto || null,
         avisoDias: typeof avisoDias === 'number' ? Math.max(0, Math.floor(avisoDias)) : 1,
         creadoPor: getCurrentUserLabel(request),
       },

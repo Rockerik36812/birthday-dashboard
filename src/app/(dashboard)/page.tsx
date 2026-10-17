@@ -781,6 +781,7 @@ function Dashboard() {
           sucursalId: editingCumple.sucursalId,
           mensaje: editingCumple.mensaje,
           emoji: editingCumple.emoji || '',
+          foto: editingCumple.foto || '',
           avisoDias: editingCumple.avisoDias ?? 1,
           creadoPor: editingCumple.creadoPor,
           actualizadoPor: editingCumple.actualizadoPor,

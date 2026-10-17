@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -14,6 +14,7 @@ const birthdaySchema = z.object({
   sucursalId: z.string().min(1, 'Selecciona una sucursal'),
   mensaje: z.string().min(10, 'El mensaje debe tener al menos 10 caracteres').max(500),
   emoji: z.string().max(20).optional(),
+  foto: z.string().max(500).optional(),
   avisoDias: z.coerce.number().min(0).max(30).optional(),
 })
 
@@ -30,6 +31,7 @@ interface BirthdayModalProps {
     sucursalId: string
     mensaje: string
     emoji?: string
+    foto?: string | null
     avisoDias?: number
     creadoPor?: string | null
     actualizadoPor?: string | null
@@ -61,9 +63,21 @@ export function BirthdayModal({
       sucursalId: '',
       mensaje: '',
       emoji: '',
+      foto: '',
       avisoDias: 1,
     },
   })
+
+  // ── Foto ────────────────────────────────────────────────────────────────
+  // Va en estado LOCAL: react-hook-form no maneja bien los inputs de archivo.
+  const [fotoUrl, setFotoUrl] = useState<string>('')
+  const [fotoStatus, setFotoStatus] = useState<'idle' | 'subiendo' | 'listo' | 'error'>('idle')
+  const [fotoError, setFotoError] = useState<string>('')
+  const [fotoNombre, setFotoNombre] = useState<string>('')
+  const fotoInputRef = useRef<HTMLInputElement | null>(null)
+  const subiendoRef = useRef(false)
+  // Firma del archivo ya procesado (nombre+tamaño+fecha): evita subirlo dos veces.
+  const firmaRef = useRef<string>('')
 
   useEffect(() => {
     if (isOpen && initialData) {
@@ -73,8 +87,10 @@ export function BirthdayModal({
         sucursalId: initialData.sucursalId,
         mensaje: initialData.mensaje,
         emoji: initialData.emoji || '',
+        foto: initialData.foto || '',
         avisoDias: initialData.avisoDias ?? 1,
       })
+      setFotoUrl(initialData.foto || '')
     } else if (isOpen && !initialData) {
       reset({
         nombre: '',
@@ -82,9 +98,16 @@ export function BirthdayModal({
         sucursalId: sucursales[0]?.id || '',
         mensaje: '',
         emoji: '',
+        foto: '',
         avisoDias: 1,
       })
+      setFotoUrl('')
     }
+    // Al abrir/cerrar se limpia el estado de la foto y la firma del archivo
+    setFotoStatus('idle')
+    setFotoError('')
+    setFotoNombre('')
+    firmaRef.current = ''
   }, [isOpen, initialData, reset, sucursales])
 
   useEffect(() => {
@@ -96,10 +119,108 @@ export function BirthdayModal({
     }
   }, [isOpen])
 
+  // RESPALDO 1 — revisa el input cada 600 ms mientras el modal está abierto.
+  // En Chrome (sobre todo Android / PWA) a veces NO se dispara ningún evento al
+  // elegir el archivo; sin esto la foto se perdía en silencio. Solo lee el input,
+  // no hace peticiones, así que es barato.
+  useEffect(() => {
+    if (!isOpen) return
+    const id = setInterval(() => {
+      const f = fotoInputRef.current?.files?.[0]
+      if (!f) return
+      const firma = `${f.name}|${f.size}|${f.lastModified}`
+      if (firma !== firmaRef.current) void leerArchivoDelInput()
+    }, 600)
+    return () => clearInterval(id)
+  }, [isOpen])
+
   if (!isOpen) return null
 
+  // Convierte la imagen a JPEG redimensionado (máx 900 px) con canvas.
+  // Dos ventajas: baja mucho el peso (evita el tope de 8 MB) y normaliza el
+  // formato. Si el navegador no puede decodificarla (p. ej. HEIC en Chrome),
+  // devuelve el archivo tal cual y el servidor responde con un mensaje claro.
+  async function prepararArchivo(archivo: File): Promise<Blob> {
+    try {
+      const bitmap = await createImageBitmap(archivo)
+      const MAX = 900
+      const escala = Math.min(1, MAX / Math.max(bitmap.width, bitmap.height))
+      const w = Math.max(1, Math.round(bitmap.width * escala))
+      const h = Math.max(1, Math.round(bitmap.height * escala))
+      const canvas = document.createElement('canvas')
+      canvas.width = w
+      canvas.height = h
+      const ctx = canvas.getContext('2d')
+      if (!ctx) return archivo
+      ctx.drawImage(bitmap, 0, 0, w, h)
+      bitmap.close?.()
+      const blob: Blob | null = await new Promise(res =>
+        canvas.toBlob(b => res(b), 'image/jpeg', 0.85)
+      )
+      return blob && blob.size > 0 ? blob : archivo
+    } catch {
+      return archivo
+    }
+  }
+
+  // Sube la imagen. Devuelve la URL, o '' si algo falló (dejando el error visible).
+  async function subirFoto(archivo: File): Promise<string> {
+    if (subiendoRef.current) return ''
+    subiendoRef.current = true
+    setFotoStatus('subiendo')
+    setFotoError('')
+    setFotoNombre(archivo.name || 'imagen')
+    try {
+      const blob = await prepararArchivo(archivo)
+      const fd = new FormData()
+      fd.append('file', blob, archivo.name || 'foto.jpg')
+      const res = await fetch('/api/upload', { method: 'POST', body: fd })
+      const d = await res.json().catch(() => ({}))
+      if (!res.ok || !d.url) {
+        setFotoError(d.error || 'No se pudo subir la imagen. Intenta de nuevo.')
+        setFotoStatus('error')
+        return ''
+      }
+      setFotoUrl(d.url)
+      setFotoStatus('listo')
+      return d.url as string
+    } catch {
+      setFotoError('Error de conexión al subir la imagen. Revisa tu internet.')
+      setFotoStatus('error')
+      return ''
+    } finally {
+      subiendoRef.current = false
+    }
+  }
+
+  // Lee lo que haya en el input y lo sube si es un archivo nuevo.
+  async function leerArchivoDelInput() {
+    const f = fotoInputRef.current?.files?.[0]
+    if (!f) return
+    const firma = `${f.name}|${f.size}|${f.lastModified}`
+    if (firma === firmaRef.current) return
+    firmaRef.current = firma
+    await subirFoto(f)
+  }
+
+  // RESPALDO 2 (el que garantiza) — al guardar, si hay un archivo elegido que
+  // todavía no se subió, se sube AQUÍ antes de enviar el registro.
   const handleSubmitForm = async (data: BirthdayFormData) => {
-    await onSubmit(data)
+    let url = fotoUrl
+    const f = fotoInputRef.current?.files?.[0]
+    if (f) {
+      const firma = `${f.name}|${f.size}|${f.lastModified}`
+      if (firma !== firmaRef.current || !url) {
+        firmaRef.current = firma
+        const subida = await subirFoto(f)
+        if (subida) url = subida
+      }
+    }
+    if (!url && fotoStatus === 'error') {
+      // La foto no se pudo subir: avisamos y NO guardamos para no perder el aviso
+      return
+    }
+    await onSubmit({ ...data, foto: url || undefined })
     onClose()
   }
 
@@ -148,7 +269,7 @@ export function BirthdayModal({
           <div>
             <label htmlFor="fecha" className="label flex items-center gap-1.5">
               <Calendar className="w-4 h-4 text-primary-500" />
-              Fecha de cumpleaños
+              Fecha de Nacimiento
             </label>
             <input
               {...register('fecha')}
@@ -228,6 +349,89 @@ export function BirthdayModal({
                   autoComplete="off"
                 />
                 <p className="mt-1 text-xs text-neutral-500">Aparece como el símbolo principal de la tarjeta</p>
+              </div>
+
+              {/* Foto: subir desde el dispositivo (se guarda en el servidor) */}
+              <div>
+                <label className="label flex items-center gap-1.5">
+                  <Image className="w-4 h-4 text-primary-500" />
+                  Foto (opcional)
+                </label>
+
+                {/* Input real, visualmente oculto: lo dispara el botón de abajo */}
+                <input
+                  id="foto-file"
+                  ref={fotoInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="sr-only"
+                  onClick={(e) => { e.currentTarget.value = '' }}
+                  onChangeCapture={() => void leerArchivoDelInput()}
+                  onChange={() => void leerArchivoDelInput()}
+                  onInput={() => void leerArchivoDelInput()}
+                />
+
+                {/* Botón que abre el selector (label nativo = máxima compatibilidad) */}
+                <label
+                  htmlFor="foto-file"
+                  className="btn-secondary w-full flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Image className="w-4 h-4" />
+                  {fotoUrl ? 'Cambiar foto' : 'Subir foto'}
+                </label>
+
+                <p className="mt-1 text-xs text-neutral-500">
+                  Si pones foto, sale en la tarjeta en lugar del emoji. JPG, PNG, WEBP o GIF (máx 8 MB).
+                </p>
+
+                {/* Estado de la subida */}
+                {fotoStatus === 'subiendo' && (
+                  <p className="mt-2 text-sm text-primary-600 flex items-center gap-1.5">
+                    <Loader2 className="w-4 h-4 animate-spin" /> Subiendo {fotoNombre}…
+                  </p>
+                )}
+                {fotoStatus === 'listo' && (
+                  <p className="mt-2 text-sm text-green-600 flex items-center gap-1.5">
+                    <span>✓</span> Foto lista
+                  </p>
+                )}
+                {fotoStatus === 'error' && (
+                  <p className="mt-2 text-sm text-red-600 flex items-start gap-1.5">
+                    <X className="w-4 h-4 mt-0.5 shrink-0" /> {fotoError}
+                  </p>
+                )}
+
+                {/* Vista previa + quitar */}
+                {fotoUrl && (
+                  <div className="mt-3 flex items-center gap-3">
+                    <img
+                      src={fotoUrl}
+                      alt="Vista previa de la foto"
+                      className="w-16 h-16 rounded-full object-cover border-2"
+                      style={{ borderColor: '#e8792e' }}
+                    />
+                    <span className="text-xs text-neutral-500">Así se verá en la tarjeta</span>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const anterior = fotoUrl
+                        setFotoUrl('')
+                        setFotoStatus('idle')
+                        setFotoError('')
+                        firmaRef.current = ''
+                        if (fotoInputRef.current) fotoInputRef.current.value = ''
+                        if (anterior.startsWith('/api/uploads/')) {
+                          const nombre = anterior.split('/').pop()
+                          await fetch(`/api/uploads/${nombre}`, { method: 'DELETE' })
+                        }
+                      }}
+                      className="btn-danger"
+                      aria-label="Quitar foto"
+                    >
+                      🗑️ Quitar
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Anticipación del recordatorio */}
