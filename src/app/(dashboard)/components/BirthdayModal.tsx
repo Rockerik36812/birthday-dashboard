@@ -78,6 +78,10 @@ export function BirthdayModal({
   // Contador de eventos que el navegador realmente disparó sobre el input.
   // Si al elegir la foto esto se queda en 0, el navegador no entregó nada.
   const [diagEvt, setDiagEvt] = useState<string>('c0 i0 v0')
+  // Cuántas veces se ha montado el componente y en qué modo corre la app
+  // (PWA instalada / WebView de app / navegador). Si el contador sube al elegir
+  // la foto, el modal se está remontando y por eso se pierde el archivo.
+  const [diagModo, setDiagModo] = useState<string>('?')
   const [fotoError, setFotoError] = useState<string>('')
   const [fotoNombre, setFotoNombre] = useState<string>('')
   const fotoInputRef = useRef<HTMLInputElement | null>(null)
@@ -146,9 +150,19 @@ export function BirthdayModal({
   // distinguir "el navegador no entregó el archivo" de "la subida falló".
   useEffect(() => {
     if (!isOpen) return
+    // Modo de ejecución: PWA instalada / WebView de app / navegador normal.
+    const esPWA = window.matchMedia('(display-mode: standalone)').matches ||
+      (navigator as unknown as { standalone?: boolean }).standalone === true
+    const esWV = /;\s*wv\)|FBAN|FBAV|Instagram|Line\/|WhatsApp/i.test(navigator.userAgent)
+    const w = window as unknown as { __bdMontajes?: number }
+    w.__bdMontajes = (w.__bdMontajes || 0) + 1
+    setDiagModo(`${esPWA ? 'PWA' : esWV ? 'WebView' : 'navegador'} · montajes ${w.__bdMontajes}`)
+
     const cuenta = { change: 0, input: 0, vis: 0 }
     const pinta = () => setDiagEvt(`c${cuenta.change} i${cuenta.input} v${cuenta.vis}`)
-    const onC = () => { cuenta.change++; pinta() }
+    // Handlers NATIVOS (no de React): es como funciona la página de prueba, que sí
+    // selecciona el archivo en el celular del usuario.
+    const onC = () => { cuenta.change++; pinta(); void leerArchivoDelInput() }
     const onI = () => { cuenta.input++; pinta() }
     const onV = () => { if (document.visibilityState === 'hidden') { cuenta.vis++; pinta() } }
     const el = fotoInputRef.current
@@ -397,9 +411,6 @@ export function BirthdayModal({
                   type="file"
                   accept="image/*"
                   className="block w-full text-sm text-neutral-600 cursor-pointer rounded-xl border border-neutral-300 bg-neutral-50 file:mr-3 file:py-2.5 file:px-4 file:rounded-l-xl file:border-0 file:bg-primary-500 file:text-white file:font-semibold file:cursor-pointer hover:file:bg-primary-600"
-                  onChangeCapture={() => void leerArchivoDelInput()}
-                  onChange={() => void leerArchivoDelInput()}
-                  onInput={() => void leerArchivoDelInput()}
                 />
                 <p className="mt-1 text-xs text-neutral-500">
                   {fotoUrl ? 'Elige otra imagen para cambiarla.' : 'Toca "Elegir archivo" y selecciona una imagen.'}
@@ -412,7 +423,7 @@ export function BirthdayModal({
                 {/* Diagnóstico temporal: muestra si el selector entregó el archivo.
                     Sirve para verlo desde el celular sin abrir la consola. */}
                 <p className="mt-1 text-[10px] text-neutral-400 leading-tight break-all">
-                  diag v3 · selector: {diagInput} · estado: {fotoStatus} · eventos: {diagEvt}
+                  diag v4 · selector: {diagInput} · estado: {fotoStatus} · eventos: {diagEvt} · {diagModo}
                 </p>
 
                 {/* Estado de la subida */}
