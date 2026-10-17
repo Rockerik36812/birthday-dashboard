@@ -137,8 +137,10 @@ export function BirthdayModal({
     if (!isOpen) return
     const id = setInterval(() => {
       const f = fotoInputRef.current?.files?.[0]
-      setDiagInput(f ? `${f.name} (${Math.round(f.size / 1024)} KB)` : 'sin archivo')
+      // Solo informa cuando el campo de RESPALDO tiene archivo; si está vacío no
+      // pisa lo que reportó el selector externo (el botón principal).
       if (!f) return
+      setDiagInput(`${f.name} (${Math.round(f.size / 1024)} KB)`)
       const firma = `${f.name}|${f.size}|${f.lastModified}`
       if (firma !== firmaRef.current) void leerArchivoDelInput()
     }, 600)
@@ -233,6 +235,42 @@ export function BirthdayModal({
     } finally {
       subiendoRef.current = false
     }
+  }
+
+  // Abre el selector con un input creado por JavaScript PURO, pegado al <body>:
+  // FUERA del modal, del <form> y del árbol de React. Es el método más robusto en
+  // Android: el input incrustado dentro del modal (que lleva encima overflow,
+  // animación y backdrop-blur) NO recibe el archivo en algunos dispositivos —
+  // el usuario elige la foto en la galería y el campo se queda vacío.
+  function abrirSelector() {
+    const inp = document.createElement('input')
+    inp.type = 'file'
+    inp.accept = 'image/*'
+    inp.style.position = 'fixed'
+    inp.style.left = '-9999px'
+    inp.style.top = '0'
+    document.body.appendChild(inp)
+
+    let tomado = false
+    const tomar = async () => {
+      const f = inp.files && inp.files[0]
+      if (!f || tomado) return
+      tomado = true
+      setDiagInput(`${f.name} (${Math.round(f.size / 1024)} KB)`)
+      await subirFoto(f)
+      setTimeout(() => inp.remove(), 800)
+    }
+    inp.addEventListener('change', () => void tomar())
+    inp.addEventListener('input', () => void tomar())
+    // Respaldo: si el navegador no dispara ningún evento, se revisa cada 500 ms.
+    const id = setInterval(() => {
+      const f = inp.files && inp.files[0]
+      setDiagInput(f ? `${f.name} (${Math.round(f.size / 1024)} KB)` : 'sin archivo')
+      if (f) { clearInterval(id); void tomar() }
+    }, 500)
+    setTimeout(() => { clearInterval(id); inp.remove() }, 180000)
+
+    inp.click()
   }
 
   // Lee lo que haya en el input y lo sube si es un archivo nuevo.
@@ -403,20 +441,29 @@ export function BirthdayModal({
                   Foto (opcional)
                 </label>
 
-                {/* Input file NATIVO y VISIBLE, estilizado con Tailwind.
-                    Se probaron dos variantes de input "disfrazado de botón"
-                    (label+sr-only y luego input transparente encima del botón) y en
-                    algunos Android la foto elegida NUNCA llega al input. El control
-                    nativo visible es el único que no puede fallar. */}
+                {/* MÉTODO PRINCIPAL: botón que abre un selector creado con JavaScript
+                    puro, pegado al <body> (fuera del modal y de React). El input
+                    incrustado aquí no recibe el archivo en algunos Android. */}
+                <button
+                  type="button"
+                  onClick={abrirSelector}
+                  className="btn-secondary w-full flex items-center justify-center gap-2"
+                >
+                  <Image className="w-4 h-4" />
+                  {fotoUrl ? 'Cambiar foto' : 'Subir foto'}
+                </button>
+
+                {/* RESPALDO: el campo nativo visible, por si el botón no abriera el
+                    selector en algún navegador. */}
                 <input
                   id="foto-file"
                   ref={fotoInputRef}
                   type="file"
                   accept="image/*"
-                  className="block w-full text-sm text-neutral-600 cursor-pointer rounded-xl border border-neutral-300 bg-neutral-50 file:mr-3 file:py-2.5 file:px-4 file:rounded-l-xl file:border-0 file:bg-primary-500 file:text-white file:font-semibold file:cursor-pointer hover:file:bg-primary-600"
+                  className="mt-2 block w-full text-xs text-neutral-500 cursor-pointer rounded-xl border border-neutral-200 bg-neutral-50 file:mr-2 file:py-2 file:px-3 file:rounded-l-xl file:border-0 file:bg-neutral-400 file:text-white file:text-xs file:font-semibold"
                 />
                 <p className="mt-1 text-xs text-neutral-500">
-                  {fotoUrl ? 'Elige otra imagen para cambiarla.' : 'Toca "Elegir archivo" y selecciona una imagen.'}
+                  Toca <b>Subir foto</b>. Si no se abre la galería, usa el campo de abajo.
                 </p>
 
                 <p className="mt-1 text-xs text-neutral-500">
