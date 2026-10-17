@@ -72,6 +72,9 @@ export function BirthdayModal({
   // Va en estado LOCAL: react-hook-form no maneja bien los inputs de archivo.
   const [fotoUrl, setFotoUrl] = useState<string>('')
   const [fotoStatus, setFotoStatus] = useState<'idle' | 'subiendo' | 'listo' | 'error'>('idle')
+  // Diagnóstico en pantalla: permite ver EN EL CELULAR si el selector llegó a
+  // entregar el archivo. Sin esto, un fallo del selector es invisible.
+  const [diagInput, setDiagInput] = useState<string>('sin archivo')
   const [fotoError, setFotoError] = useState<string>('')
   const [fotoNombre, setFotoNombre] = useState<string>('')
   const fotoInputRef = useRef<HTMLInputElement | null>(null)
@@ -127,6 +130,7 @@ export function BirthdayModal({
     if (!isOpen) return
     const id = setInterval(() => {
       const f = fotoInputRef.current?.files?.[0]
+      setDiagInput(f ? `${f.name} (${Math.round(f.size / 1024)} KB)` : 'sin archivo')
       if (!f) return
       const firma = `${f.name}|${f.size}|${f.lastModified}`
       if (firma !== firmaRef.current) void leerArchivoDelInput()
@@ -358,30 +362,38 @@ export function BirthdayModal({
                   Foto (opcional)
                 </label>
 
-                {/* Input real, visualmente oculto: lo dispara el botón de abajo */}
-                <input
-                  id="foto-file"
-                  ref={fotoInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="sr-only"
-                  onClick={(e) => { e.currentTarget.value = '' }}
-                  onChangeCapture={() => void leerArchivoDelInput()}
-                  onChange={() => void leerArchivoDelInput()}
-                  onInput={() => void leerArchivoDelInput()}
-                />
-
-                {/* Botón que abre el selector (label nativo = máxima compatibilidad) */}
-                <label
-                  htmlFor="foto-file"
-                  className="btn-secondary w-full flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <Image className="w-4 h-4" />
-                  {fotoUrl ? 'Cambiar foto' : 'Subir foto'}
-                </label>
+                {/* El botón es solo VISUAL: encima va el input file transparente a
+                    tamaño completo, así el usuario toca el input DIRECTAMENTE (sin
+                    label intermediario). Es el patrón más compatible en Android/iOS.
+                    OJO: nunca poner onClick que limpie input.value aquí — en Android
+                    el navegador dispara un click extra al cerrar la galería y eso
+                    borraba la foto antes de leerla (la causa del "no pasa nada"). */}
+                <div className="relative">
+                  <div className="btn-secondary w-full flex items-center justify-center gap-2 pointer-events-none">
+                    <Image className="w-4 h-4" />
+                    {fotoUrl ? 'Cambiar foto' : 'Subir foto'}
+                  </div>
+                  <input
+                    id="foto-file"
+                    ref={fotoInputRef}
+                    type="file"
+                    accept="image/*"
+                    aria-label="Subir foto"
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    onChangeCapture={() => void leerArchivoDelInput()}
+                    onChange={() => void leerArchivoDelInput()}
+                    onInput={() => void leerArchivoDelInput()}
+                  />
+                </div>
 
                 <p className="mt-1 text-xs text-neutral-500">
                   Si pones foto, sale en la tarjeta en lugar del emoji. JPG, PNG, WEBP o GIF (máx 8 MB).
+                </p>
+
+                {/* Diagnóstico temporal: muestra si el selector entregó el archivo.
+                    Sirve para verlo desde el celular sin abrir la consola. */}
+                <p className="mt-1 text-[10px] text-neutral-400 leading-tight break-all">
+                  diag v2 · selector: {diagInput} · estado: {fotoStatus}
                 </p>
 
                 {/* Estado de la subida */}
