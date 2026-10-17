@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prueba de selección de archivos</title>
+<style>
+  body { font-family: system-ui, -apple-system, sans-serif; background: #0f172a; color: #e2e8f0; margin: 0; padding: 18px; }
+  h1 { font-size: 1.15rem; margin: 0 0 4px; }
+  p.intro { color: #94a3b8; font-size: .85rem; margin: 0 0 18px; }
+  .caso { background: #1e293b; border-radius: 14px; padding: 14px; margin-bottom: 14px; border: 1px solid #334155; }
+  .caso.ok { border-color: #16a34a; background: #14291d; }
+  .caso.fail { border-color: #dc2626; background: #2a1414; }
+  .titulo { font-weight: 700; font-size: .95rem; margin-bottom: 2px; }
+  .desc { color: #94a3b8; font-size: .78rem; margin-bottom: 10px; }
+  input[type=file] { width: 100%; font-size: .85rem; color: #cbd5e1; cursor: pointer; background: #0f172a; border: 1px solid #475569; border-radius: 10px; padding: 8px; box-sizing: border-box; }
+  input[type=file]::file-selector-button { background: #e8792e; color: #fff; border: 0; border-radius: 8px; padding: 9px 14px; font-weight: 700; margin-right: 10px; cursor: pointer; }
+  .res { margin-top: 9px; font-size: .8rem; font-family: ui-monospace, monospace; color: #64748b; }
+  .res b { color: #e2e8f0; }
+  .si { color: #4ade80; font-weight: 700; }
+  .no { color: #f87171; font-weight: 700; }
+  .aviso { background: #1e293b; border-left: 3px solid #e8792e; padding: 10px 12px; border-radius: 8px; font-size: .8rem; color: #cbd5e1; margin-bottom: 16px; }
+</style>
+</head>
+<body>
+<h1>🔍 Prueba de selección de archivos</h1>
+<p class="intro">Toca cada botón, elige una foto y observa si el campo se llena.</p>
+
+<div class="aviso">
+  <b>Cómo usarla:</b> toca <b>"Elegir archivo"</b> en cada cuadro, elige cualquier foto de tu galería,
+  y mira si el nombre del archivo aparece en el campo y en la línea de abajo.
+  Al final dime <b>cuáles dicen ✅</b> y <b>cuáles ❌</b>.
+</div>
+
+<div class="caso" id="c1">
+  <div class="titulo">1. Campo normal (sin filtro)</div>
+  <div class="desc">El más básico posible. Sin ninguna restricción de tipo.</div>
+  <input type="file" id="i1">
+  <div class="res" id="r1">sin archivo · eventos: c0 i0</div>
+</div>
+
+<div class="caso" id="c2">
+  <div class="titulo">2. Como está hoy en el dashboard (image/*)</div>
+  <div class="desc">Este es el que usa el dashboard de cumpleaños actualmente.</div>
+  <input type="file" id="i2" accept="image/*">
+  <div class="res" id="r2">sin archivo · eventos: c0 i0</div>
+</div>
+
+<div class="caso" id="c3">
+  <div class="titulo">3. Filtro por formatos exactos</div>
+  <div class="desc">Solo JPG y PNG, sin comodines.</div>
+  <input type="file" id="i3" accept="image/jpeg,image/png">
+  <div class="res" id="r3">sin archivo · eventos: c0 i0</div>
+</div>
+
+<div class="caso" id="c4">
+  <div class="titulo">4. Directo a la cámara</div>
+  <div class="desc">Abre la cámara en vez de la galería.</div>
+  <input type="file" id="i4" accept="image/*" capture="environment">
+  <div class="res" id="r4">sin archivo · eventos: c0 i0</div>
+</div>
+
+<div class="caso" id="info">
+  <div class="titulo">📱 Datos de tu navegador</div>
+  <div class="res" id="rinfo">cargando…</div>
+</div>
+
+<script>
+  function engancha(n) {
+    var inp = document.getElementById('i' + n);
+    var res = document.getElementById('r' + n);
+    var caso = document.getElementById('c' + n);
+    var c = 0, i = 0;
+    function pinta() {
+      var f = inp.files && inp.files[0];
+      var txt = f
+        ? '✅ <b>' + f.name + '</b> · ' + Math.round(f.size / 1024) + ' KB · ' + (f.type || 'sin tipo')
+        : 'sin archivo';
+      res.innerHTML = txt + ' · eventos: c' + c + ' i' + i;
+      caso.className = 'caso' + (f ? ' ok' : '');
+    }
+    inp.addEventListener('change', function () { c++; pinta(); });
+    inp.addEventListener('input', function () { i++; pinta(); });
+  }
+  for (var n = 1; n <= 4; n++) engancha(n);
+
+  var ua = navigator.userAgent;
+  // WebView de app: el UA trae "; wv)" (Chrome) o el nombre de la app.
+  var esApp = /;\s*wv\)|FBAN|FBAV|Instagram|Line\/|WhatsApp|Twitter/i.test(ua);
+  var nav = 'otro';
+  if (/SamsungBrowser/i.test(ua)) nav = 'Samsung Internet';
+  else if (/EdgA?\//i.test(ua)) nav = 'Edge';
+  else if (/OPR|Opera/i.test(ua)) nav = 'Opera';
+  else if (/Firefox|FxiOS/i.test(ua)) nav = 'Firefox';
+  else if (/CriOS/i.test(ua)) nav = 'Chrome (iOS)';
+  else if (/Chrome/i.test(ua)) nav = 'Chrome';
+  else if (/Safari/i.test(ua)) nav = 'Safari';
+  else if (/MiuiBrowser/i.test(ua)) nav = 'Mi Browser (Xiaomi)';
+  document.getElementById('rinfo').innerHTML =
+    'navegador: <b>' + nav + '</b><br>' +
+    '¿WebView de app (WhatsApp/Instagram/Facebook)? <b>' +
+    (esApp ? 'SÍ ⚠️ (esto rompe la selección de archivos)' : 'no') + '</b><br>' +
+    '¿instalada como app (PWA)? <b>' +
+    ((window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) ? 'SÍ' : 'no') + '</b><br>' +
+    'user agent completo:<br><b style="font-size:.72rem">' + ua + '</b>';
+</script>
+</body>
+</html>
