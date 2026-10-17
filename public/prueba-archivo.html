@@ -60,6 +60,15 @@
   <div class="res" id="r4">sin archivo · eventos: c0 i0</div>
 </div>
 
+<div class="caso" id="c5">
+  <div class="titulo">5. Subir DE VERDAD al servidor del dashboard</div>
+  <div class="desc">Prueba el mismo endpoint que usa el dashboard (/api/upload). Necesitas tener sesión abierta en el dashboard.</div>
+  <input type="file" id="i5" accept="image/*">
+  <div class="res" id="r5">sin archivo · eventos: c0 i0</div>
+  <button id="subir5" style="margin-top:10px;background:#e8792e;color:#fff;border:0;border-radius:10px;padding:11px 16px;font-weight:700;font-size:.9rem;cursor:pointer;width:100%">Subir esta imagen al servidor</button>
+  <div class="res" id="res5" style="margin-top:9px"></div>
+</div>
+
 <div class="caso" id="info">
   <div class="titulo">📱 Datos de tu navegador</div>
   <div class="res" id="rinfo">cargando…</div>
@@ -82,7 +91,31 @@
     inp.addEventListener('change', function () { c++; pinta(); });
     inp.addEventListener('input', function () { i++; pinta(); });
   }
-  for (var n = 1; n <= 4; n++) engancha(n);
+  for (var n = 1; n <= 5; n++) engancha(n);
+
+  // Caso 5: subida real al endpoint del dashboard, igual que hace la app
+  document.getElementById('subir5').addEventListener('click', function () {
+    var out = document.getElementById('res5');
+    var f = document.getElementById('i5').files && document.getElementById('i5').files[0];
+    if (!f) { out.innerHTML = '<span class="no">❌ Primero elige una imagen arriba</span>'; return; }
+    out.innerHTML = '⏳ subiendo ' + f.name + '…';
+    var fd = new FormData();
+    fd.append('file', f, f.name || 'foto.jpg');
+    fetch('/api/upload', { method: 'POST', body: fd })
+      .then(function (r) { return r.json().then(function (d) { return { status: r.status, d: d }; }); })
+      .then(function (x) {
+        if (x.d && x.d.url) {
+          out.innerHTML = '<span class="si">✅ SUBIÓ BIEN</span> · status ' + x.status +
+            '<br>URL: <b>' + x.d.url + '</b><br><img src="' + x.d.url + '" style="width:90px;height:90px;object-fit:cover;border-radius:50%;margin-top:8px;border:2px solid #16a34a">';
+        } else {
+          out.innerHTML = '<span class="no">❌ NO SUBIÓ</span> · status ' + x.status +
+            '<br>respuesta: <b>' + JSON.stringify(x.d) + '</b>';
+        }
+      })
+      .catch(function (e) {
+        out.innerHTML = '<span class="no">❌ ERROR DE RED</span> · ' + e.message;
+      });
+  });
 
   var ua = navigator.userAgent;
   // WebView de app: el UA trae "; wv)" (Chrome) o el nombre de la app.
