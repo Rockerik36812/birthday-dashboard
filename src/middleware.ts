@@ -32,7 +32,6 @@ export function middleware(req: NextRequest) {
     pathname === '/site.webmanifest' ||
     pathname === '/sw.js' ||
     pathname === '/apple-touch-icon.png' ||
-    pathname === '/prueba-archivo.html' ||
     pathname.startsWith('/icons/') ||
     STATIC_EXT.test(pathname)
   ) {
