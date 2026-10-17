@@ -262,7 +262,10 @@ export function BirthdayModal({
       // La foto no se pudo subir: avisamos y NO guardamos para no perder el aviso
       return
     }
-    await onSubmit({ ...data, foto: url || undefined })
+    // OJO: se manda `url` tal cual, NO `url || undefined`. Con `undefined` la API
+    // interpreta "no cambies la foto" y al quitar la foto con el botón 🗑️ el
+    // registro seguía mostrándola en la tarjeta. Con "" la API la borra.
+    await onSubmit({ ...data, foto: url })
     onClose()
   }
 

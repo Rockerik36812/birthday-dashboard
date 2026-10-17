@@ -6,17 +6,33 @@
  *     - kind == "tomorrow" → aviso (un día antes) 🔔
  * NO intercepta requests: la app funciona en línea contra la BD.
  */
-const SW_VERSION = 'v8' // bump al cambiar el SW para forzar su actualizacion
+const SW_VERSION = 'v9' // bump al cambiar el SW para forzar su actualizacion
 
 self.addEventListener('install', () => {
   self.skipWaiting()
 })
 
 self.addEventListener('activate', (event) => {
-  // Tomar control de todas las pestanas al instante (no esperar recarga)
-  event.waitUntil(self.clients.claim())
-  // Precarga del manifiesto para que Chrome/Android la reconozca como instalable
-  fetch('site.webmanifest', { credentials: 'omit' }).catch(() => {})
+  event.waitUntil((async () => {
+    // Limpiar CUALQUIER caché vieja que hubiera dejado una versión anterior del
+    // SW o del navegador. El dashboard se sirve siempre fresco del servidor.
+    try {
+      const nombres = await caches.keys()
+      await Promise.all(nombres.map((n) => caches.delete(n)))
+    } catch (_) {}
+    // Tomar control de todas las pestanas al instante (no esperar recarga)
+    await self.clients.claim()
+    // Recargar UNA vez las pestañas abiertas: si el navegador venía sirviendo
+    // HTML/JS viejo cacheado, así toma el nuevo sin que el usuario haga nada.
+    try {
+      const clientes = await self.clients.matchAll({ type: 'window' })
+      for (const c of clientes) {
+        if ('navigate' in c) await c.navigate(c.url)
+      }
+    } catch (_) {}
+    // Precarga del manifiesto para que Chrome/Android la reconozca como instalable
+    fetch('site.webmanifest', { credentials: 'omit' }).catch(() => {})
+  })())
 })
 
 // Extrae el JSON del payload de un push de forma robusta (varios formatos).
