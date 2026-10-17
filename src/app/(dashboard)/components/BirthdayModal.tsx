@@ -75,6 +75,9 @@ export function BirthdayModal({
   // Diagnóstico en pantalla: permite ver EN EL CELULAR si el selector llegó a
   // entregar el archivo. Sin esto, un fallo del selector es invisible.
   const [diagInput, setDiagInput] = useState<string>('sin archivo')
+  // Contador de eventos que el navegador realmente disparó sobre el input.
+  // Si al elegir la foto esto se queda en 0, el navegador no entregó nada.
+  const [diagEvt, setDiagEvt] = useState<string>('c0 i0 v0')
   const [fotoError, setFotoError] = useState<string>('')
   const [fotoNombre, setFotoNombre] = useState<string>('')
   const fotoInputRef = useRef<HTMLInputElement | null>(null)
@@ -136,6 +139,27 @@ export function BirthdayModal({
       if (firma !== firmaRef.current) void leerArchivoDelInput()
     }, 600)
     return () => clearInterval(id)
+  }, [isOpen])
+
+  // DIAGNÓSTICO — cuenta los eventos que el navegador dispara de verdad sobre el
+  // input, y si la app se va a segundo plano al abrir la galería. Sirve para
+  // distinguir "el navegador no entregó el archivo" de "la subida falló".
+  useEffect(() => {
+    if (!isOpen) return
+    const cuenta = { change: 0, input: 0, vis: 0 }
+    const pinta = () => setDiagEvt(`c${cuenta.change} i${cuenta.input} v${cuenta.vis}`)
+    const onC = () => { cuenta.change++; pinta() }
+    const onI = () => { cuenta.input++; pinta() }
+    const onV = () => { if (document.visibilityState === 'hidden') { cuenta.vis++; pinta() } }
+    const el = fotoInputRef.current
+    el?.addEventListener('change', onC)
+    el?.addEventListener('input', onI)
+    document.addEventListener('visibilitychange', onV)
+    return () => {
+      el?.removeEventListener('change', onC)
+      el?.removeEventListener('input', onI)
+      document.removeEventListener('visibilitychange', onV)
+    }
   }, [isOpen])
 
   if (!isOpen) return null
@@ -362,29 +386,24 @@ export function BirthdayModal({
                   Foto (opcional)
                 </label>
 
-                {/* El botón es solo VISUAL: encima va el input file transparente a
-                    tamaño completo, así el usuario toca el input DIRECTAMENTE (sin
-                    label intermediario). Es el patrón más compatible en Android/iOS.
-                    OJO: nunca poner onClick que limpie input.value aquí — en Android
-                    el navegador dispara un click extra al cerrar la galería y eso
-                    borraba la foto antes de leerla (la causa del "no pasa nada"). */}
-                <div className="relative">
-                  <div className="btn-secondary w-full flex items-center justify-center gap-2 pointer-events-none">
-                    <Image className="w-4 h-4" />
-                    {fotoUrl ? 'Cambiar foto' : 'Subir foto'}
-                  </div>
-                  <input
-                    id="foto-file"
-                    ref={fotoInputRef}
-                    type="file"
-                    accept="image/*"
-                    aria-label="Subir foto"
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                    onChangeCapture={() => void leerArchivoDelInput()}
-                    onChange={() => void leerArchivoDelInput()}
-                    onInput={() => void leerArchivoDelInput()}
-                  />
-                </div>
+                {/* Input file NATIVO y VISIBLE, estilizado con Tailwind.
+                    Se probaron dos variantes de input "disfrazado de botón"
+                    (label+sr-only y luego input transparente encima del botón) y en
+                    algunos Android la foto elegida NUNCA llega al input. El control
+                    nativo visible es el único que no puede fallar. */}
+                <input
+                  id="foto-file"
+                  ref={fotoInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="block w-full text-sm text-neutral-600 cursor-pointer rounded-xl border border-neutral-300 bg-neutral-50 file:mr-3 file:py-2.5 file:px-4 file:rounded-l-xl file:border-0 file:bg-primary-500 file:text-white file:font-semibold file:cursor-pointer hover:file:bg-primary-600"
+                  onChangeCapture={() => void leerArchivoDelInput()}
+                  onChange={() => void leerArchivoDelInput()}
+                  onInput={() => void leerArchivoDelInput()}
+                />
+                <p className="mt-1 text-xs text-neutral-500">
+                  {fotoUrl ? 'Elige otra imagen para cambiarla.' : 'Toca "Elegir archivo" y selecciona una imagen.'}
+                </p>
 
                 <p className="mt-1 text-xs text-neutral-500">
                   Si pones foto, sale en la tarjeta en lugar del emoji. JPG, PNG, WEBP o GIF (máx 8 MB).
@@ -393,7 +412,7 @@ export function BirthdayModal({
                 {/* Diagnóstico temporal: muestra si el selector entregó el archivo.
                     Sirve para verlo desde el celular sin abrir la consola. */}
                 <p className="mt-1 text-[10px] text-neutral-400 leading-tight break-all">
-                  diag v2 · selector: {diagInput} · estado: {fotoStatus}
+                  diag v3 · selector: {diagInput} · estado: {fotoStatus} · eventos: {diagEvt}
                 </p>
 
                 {/* Estado de la subida */}
