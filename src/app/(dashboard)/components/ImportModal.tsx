@@ -44,13 +44,19 @@ function normalizarFecha(raw: string): string | null {
     if (mm < 1 || mm > 12 || dd < 1 || dd > 31) return null
     return `${y}-${mo.padStart(2, '0')}-${d.padStart(2, '0')}`
   }
-  // DD/MM/YYYY / DD-MM-YYYY / DD.MM.YYYY
-  m = s.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})$/)
+  // DD/MM/YYYY, MM/DD/YYYY, DD-MM-YY…
+  m = s.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{2,4})$/)
   if (m) {
-    const [, d, mo, y] = m
-    const mm = Number(mo), dd = Number(d)
+    const [, a, b, yRaw] = m
+    let dd = Number(a), mm = Number(b)
+    // Año de 2 dígitos (Excel lo devuelve así a veces): 90 → 1990, 05 → 2005
+    const y = yRaw.length === 2
+      ? String(Number(yRaw) < 70 ? 2000 + Number(yRaw) : 1900 + Number(yRaw))
+      : yRaw
+    // Si el primero pasa de 12 es el día (DD/MM); si el segundo pasa de 12 es MM/DD
+    if (dd <= 12 && mm > 12) { const t = dd; dd = mm; mm = t }
     if (mm < 1 || mm > 12 || dd < 1 || dd > 31) return null
-    return `${y}-${mo.padStart(2, '0')}-${d.padStart(2, '0')}`
+    return `${y}-${String(mm).padStart(2, '0')}-${String(dd).padStart(2, '0')}`
   }
   return null
 }
@@ -155,17 +161,60 @@ export function ImportModal({ isOpen, onClose, sucursales, onImported }: ImportM
     setFilas(f)
   }
 
-  const leerArchivo = (file: File) => {
+  // Convierte la primera hoja de un Excel (.xlsx/.xls) a texto con tabuladores
+  async function excelATexto(file: File): Promise<string> {
+    const XLSX = await import('xlsx')
+    const buf = await file.arrayBuffer()
+    const wb = XLSX.read(buf, { type: 'array', cellDates: true })
+    const hoja = wb.Sheets[wb.SheetNames[0]]
+    if (!hoja) throw new Error('El archivo no tiene hojas')
+    // header:1 → filas como arreglos; raw:true → las fechas nativas de Excel llegan como Date.
+    // (con raw:false Excel las devuelve en SU formato de origen, p. ej. "5/14/90", y se pierde el siglo)
+    const rows: any[][] = XLSX.utils.sheet_to_json(hoja, {
+      header: 1,
+      raw: true,
+      blankrows: false,
+    })
+    return rows
+      .map(r => (r || []).map(c => {
+        if (c instanceof Date && !Number.isNaN(c.getTime())) {
+          // Fecha nativa de Excel → ISO (en UTC, para no perder un día por la zona horaria)
+          const y = c.getUTCFullYear()
+          const m = c.getUTCMonth() + 1
+          const d = c.getUTCDate()
+          return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+        }
+        return String(c ?? '').trim()
+      }).join('\t'))
+      .join('\n')
+  }
+
+  const leerArchivo = async (file: File) => {
     setErrorArchivo(null)
-    if (file.size > 2 * 1024 * 1024) {
-      setErrorArchivo('El archivo es muy grande (máx. 2 MB). Pega el contenido o divide el archivo.')
+    setResultado(null)
+    if (file.size > 5 * 1024 * 1024) {
+      setErrorArchivo('El archivo es muy grande (máx. 5 MB). Pega el contenido o divide el archivo.')
       return
     }
+    const nombre = (file.name || '').toLowerCase()
+    const esExcel = nombre.endsWith('.xls') || nombre.endsWith('.xlsx')
+
+    if (esExcel) {
+      try {
+        const t = await excelATexto(file)
+        setTexto(t)
+        setFilas(parsear(t, sucursales))
+      } catch (e) {
+        setErrorArchivo('No se pudo leer el Excel. Guarda la hoja como CSV, o copia las celdas y pégalas abajo.')
+      }
+      return
+    }
+
     const reader = new FileReader()
     reader.onload = () => {
-      setTexto(String(reader.result || ''))
-      setFilas(parsear(String(reader.result || ''), sucursales))
-      setResultado(null)
+      const t = String(reader.result || '')
+      setTexto(t)
+      setFilas(parsear(t, sucursales))
     }
     reader.onerror = () => setErrorArchivo('No se pudo leer el archivo. Pega el contenido en el cuadro de texto.')
     reader.readAsText(file, 'UTF-8')
@@ -237,7 +286,8 @@ export function ImportModal({ isOpen, onClose, sucursales, onImported }: ImportM
             <p className="mt-2 text-xs text-blue-800">
               La fecha puede ser <span className="font-mono">1990-05-14</span> o <span className="font-mono">14/05/1990</span>.
               Opcionalmente puedes añadir dos columnas más: <span className="font-mono">Mensaje, Emoji</span>.
-              Sirve Excel (pega las celdas) o un archivo .csv — la primera fila de títulos se ignora.
+              Puedes subir un archivo de <strong>Excel (.xlsx / .xls)</strong> o CSV, o copiar las celdas de Excel y pegarlas abajo.
+              La primera fila de títulos se ignora.
             </p>
             <button
               onClick={() => setTexto(EJEMPLO)}
@@ -251,13 +301,13 @@ export function ImportModal({ isOpen, onClose, sucursales, onImported }: ImportM
           <div className="flex flex-wrap items-center gap-3">
             <button onClick={() => fileRef.current?.click()} className="btn-secondary gap-2">
               <Upload className="w-4 h-4" />
-              Elegir archivo CSV
+              Elegir archivo Excel o CSV
             </button>
-            <span className="text-xs text-neutral-500">…o pega las filas directamente abajo</span>
+            <span className="text-xs text-neutral-500">…o pega las celdas directamente abajo</span>
             <input
               ref={fileRef}
               type="file"
-              accept=".csv,.txt,text/csv,text/plain"
+              accept=".csv,.txt,.xls,.xlsx,text/csv,text/plain,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
               className="hidden"
               onChange={e => {
                 const f = e.target.files?.[0]
