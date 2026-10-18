@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/use-auth'
-import { Loader2, Building2, Gift, Calendar as CalendarIcon, Filter, Plus, Download, Settings, LogOut, ChevronDown, Sparkles, Trash2, Info } from 'lucide-react'
+import { Loader2, Building2, Gift, Calendar as CalendarIcon, Filter, Plus, Download, Settings, LogOut, ChevronDown, Sparkles, Trash2, Info, Upload } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
@@ -18,6 +18,7 @@ import { ReminderBanner } from '@/app/(dashboard)/components/ReminderBanner'
 import { PushBell } from '@/app/(dashboard)/components/PushBell'
 import { BirthdayCard } from '@/app/(dashboard)/components/BirthdayCard'
 import { SucursalesModal } from '@/app/(dashboard)/components/SucursalesModal'
+import { ImportModal } from '@/app/(dashboard)/components/ImportModal'
 import { CumpleanosConEdad, Sucursal } from '@/types'
 import { hexToRgba } from '@/lib/colors'
 
@@ -292,6 +293,7 @@ function Dashboard() {
   const [viewMode, setViewMode] = useState<'calendar' | 'list' | 'cards'>('calendar')
   const [showUserManager, setShowUserManager] = useState(false)
   const [showSucursalesModal, setShowSucursalesModal] = useState(false)
+  const [showImportModal, setShowImportModal] = useState(false)
   const [calCurrentMonth, setCalCurrentMonth] = useState<Date>(new Date())
   const [users, setUsers] = useState<{ id: string; username: string | null; nombre: string; email: string; role: string }[]>([])
   const [editingUser, setEditingUser] = useState<{ id: string; username: string | null; nombre: string; email: string; role: string } | null>(null)
@@ -645,6 +647,21 @@ function Dashboard() {
               <Building2 className="w-4 h-4" />
               <span className="flex-1 sm:flex-none text-center">Sucursales</span>
             </button>
+            <button
+              onClick={() => {
+                if (sucursales.length === 0) {
+                  alert('Primero crea una sucursal para asociar los cumpleaños')
+                  setShowSucursalesModal(true)
+                  return
+                }
+                setShowImportModal(true)
+              }}
+              className="btn-secondary gap-2 flex-1 sm:flex-none justify-center"
+              title="Importar varios cumpleaños desde Excel/CSV"
+            >
+              <Upload className="w-4 h-4" />
+              <span className="flex-1 sm:flex-none text-center">Importar</span>
+            </button>
           </div>
         </div>
 
@@ -793,6 +810,13 @@ function Dashboard() {
         onClose={() => setShowSucursalesModal(false)}
         sucursales={sucursales}
         onChanged={fetchData}
+      />
+
+      <ImportModal
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        sucursales={sucursales}
+        onImported={fetchData}
       />
 
       {showWhatsAppShare && (
