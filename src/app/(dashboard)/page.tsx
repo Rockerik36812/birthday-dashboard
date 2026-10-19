@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/use-auth'
-import { Loader2, Building2, Gift, Calendar as CalendarIcon, Filter, Plus, Download, Settings, LogOut, ChevronDown, Sparkles, Trash2, Info, Upload } from 'lucide-react'
+import { Loader2, Building2, Gift, Calendar as CalendarIcon, Filter, Plus, Download, Settings, LogOut, ChevronDown, Sparkles, Trash2, Info, Upload, Search, Clock } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
@@ -285,6 +285,8 @@ function Dashboard() {
   const [cumpleanos, setCumpleanos] = useState<CumpleanosConEdad[]>([])
   const [sucursales, setSucursales] = useState<Sucursal[]>([])
   const [selectedSucursal, setSelectedSucursal] = useState<string | null>(null)
+  const [busqueda, setBusqueda] = useState('')
+  const [rango, setRango] = useState<'hoy' | 'mes' | '30d' | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingCumple, setEditingCumple] = useState<CumpleanosConEdad | null>(null)
@@ -434,9 +436,21 @@ function Dashboard() {
     setShowWhatsAppShare({ mode: 'group', cumple: cumpleMes[0] })
   }
 
-  const filteredCumpleanos = selectedSucursal
+  // Filtro encadenado: sucursal → búsqueda por nombre → rango (hoy / mes / 30 días)
+  const filteredCumpleanos = (selectedSucursal
     ? cumpleanos.filter(c => c.sucursalId === selectedSucursal)
     : cumpleanos
+  )
+    .filter(c => {
+      const q = busqueda.trim().toLowerCase()
+      return !q || c.nombre.toLowerCase().includes(q)
+    })
+    .filter(c => {
+      if (rango === 'hoy') return isBirthdayToday(c.fecha)
+      if (rango === 'mes') return isBirthdayInMonth(c.fecha, calCurrentMonth.getMonth())
+      if (rango === '30d') return c.diasParaCumple <= 30
+      return true
+    })
 
   const cumpleMes = filteredCumpleanos.filter(c => isBirthdayInMonth(c.fecha, calCurrentMonth.getMonth()))
   const cumpleHoy = filteredCumpleanos.filter(c => isBirthdayToday(c.fecha))
@@ -444,6 +458,7 @@ function Dashboard() {
     .filter(c => !isBirthdayToday(c.fecha) && c.diasParaCumple <= 30)
     .sort((a, b) => a.diasParaCumple - b.diasParaCumple)
     .slice(0, 5)
+  const cumpleProximosTotal = filteredCumpleanos.filter(c => c.diasParaCumple <= 30).length
 
   if (status === 'loading') {
     return (
@@ -479,15 +494,26 @@ function Dashboard() {
 
             <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-3 w-full sm:w-auto">
               {/* Stats rápidos */}
-              <div className="hidden sm:flex items-center gap-4 text-sm">
-                <div className="flex items-center gap-1.5 text-success-600">
-                  <Gift className="w-4 h-4" />
-                  <span>{cumpleHoy.length} hoy</span>
-                </div>
-                <div className="flex items-center gap-1.5 text-primary-600">
-                  <CalendarIcon className="w-4 h-4" />
-                  <span>{cumpleMes.length} este mes</span>
-                </div>
+              <div className="hidden sm:flex items-center gap-1.5 text-sm">
+                {([
+                  ['hoy', cumpleHoy.length, 'hoy', Gift, 'text-success-600'],
+                  ['mes', cumpleMes.length, 'este mes', CalendarIcon, 'text-primary-600'],
+                  ['30d', cumpleProximosTotal, 'próx. 30 días', Clock, 'text-warning-600'],
+                ] as const).map(([key, n, label, Icon, color]) => (
+                  <button
+                    key={key}
+                    onClick={() => setRango(r => (r === key ? null : key))}
+                    className={cn(
+                      'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-colors',
+                      color,
+                      rango === key ? 'bg-neutral-100 font-semibold' : 'hover:bg-neutral-50'
+                    )}
+                    title={`Ver solo ${label}`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    <span>{n} {label}</span>
+                  </button>
+                ))}
               </div>
 
               {/* Botones de vista */}
@@ -647,6 +673,16 @@ function Dashboard() {
           </div>
 
           <div className="flex items-center justify-between gap-2 w-full sm:w-auto flex-wrap sm:flex-nowrap">
+            <div className="relative flex-1 sm:flex-none sm:w-56">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none" />
+              <input
+                type="search"
+                value={busqueda}
+                onChange={(e) => setBusqueda(e.target.value)}
+                placeholder="Buscar por nombre..."
+                className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm text-neutral-700 focus:border-primary-400 focus:ring-2 focus:ring-primary-100"
+              />
+            </div>
             <button onClick={handleShareGroup} className="btn-whatsapp gap-2 flex-1 sm:flex-none justify-center" disabled={cumpleMes.length === 0}>
               <Gift className="w-4 h-4" />
               <span className="flex-1 sm:flex-none text-center">Compartir Mes ({cumpleMes.length})</span>
