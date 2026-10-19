@@ -362,6 +362,32 @@ function Dashboard() {
     }
   }, [status])
 
+  // Exporta los cumpleaños visibles (respeta el filtro de sucursal) a un .xlsx
+  // Usa el MISMO formato que la importación, así el archivo sirve de respaldo y se puede reimportar
+  const handleExport = async () => {
+    try {
+      const XLSX = await import('xlsx')
+      const filas: any[][] = [['Nombre', 'Fecha', 'Sucursal', 'Mensaje', 'Emoji']]
+      for (const c of filteredCumpleanos) {
+        filas.push([
+          c.nombre,
+          format(parseBirthdayLocal(c.fecha), 'yyyy-MM-dd'),
+          c.sucursal?.nombre || '',
+          c.mensaje || '',
+          c.emoji || '',
+        ])
+      }
+      const ws = XLSX.utils.aoa_to_sheet(filas)
+      ws['!cols'] = [{ wch: 28 }, { wch: 13 }, { wch: 20 }, { wch: 45 }, { wch: 8 }]
+      const wb = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(wb, ws, 'Cumpleaños')
+      XLSX.writeFile(wb, `cumpleanos-${format(new Date(), 'yyyy-MM-dd')}.xlsx`)
+    } catch (e) {
+      console.error(e)
+      alert('No se pudo generar el archivo. Intenta de nuevo.')
+    }
+  }
+
   const handleSubmit = async (data: any) => {
     setIsSubmitting(true)
     try {
@@ -661,6 +687,15 @@ function Dashboard() {
             >
               <Upload className="w-4 h-4" />
               <span className="flex-1 sm:flex-none text-center">Importar</span>
+            </button>
+            <button
+              onClick={handleExport}
+              disabled={filteredCumpleanos.length === 0}
+              className="btn-secondary gap-2 flex-1 sm:flex-none justify-center disabled:opacity-50"
+              title="Descargar la lista en Excel (respeta el filtro de sucursal)"
+            >
+              <Download className="w-4 h-4" />
+              <span className="flex-1 sm:flex-none text-center">Exportar</span>
             </button>
           </div>
         </div>
